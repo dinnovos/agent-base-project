@@ -1,6 +1,6 @@
 # FastAPI Base Project
 
-A modular FastAPI project template with JWT authentication, SQLAlchemy ORM, and Alembic migrations.
+A modular FastAPI project template with JWT authentication, SQLAlchemy ORM, Alembic migrations, and LangGraph AI agents.
 
 ## Features
 
@@ -8,6 +8,7 @@ A modular FastAPI project template with JWT authentication, SQLAlchemy ORM, and 
 - **SQLAlchemy ORM** - Powerful database ORM with support for multiple databases
 - **JWT Authentication** - Secure authentication using JSON Web Tokens
 - **Alembic** - Database migration management
+- **LangGraph Agents** - AI agents with state persistence using LangGraph
 - **Modular Architecture** - Clean separation of concerns with routers, services, and models
 - **Pydantic Schemas** - Request/response validation and serialization
 - **CORS Support** - Cross-Origin Resource Sharing enabled
@@ -25,7 +26,8 @@ agent-base-project/
 │   │   └── constants.py     # Application constants
 │   ├── db/                  # Database configuration
 │   │   ├── database.py      # SQLAlchemy engine setup
-│   │   └── session.py       # Database session management
+│   │   ├── session.py       # Database session management
+│   │   └── checkpoint.py    # LangGraph checkpoint configuration
 │   ├── models/              # SQLAlchemy ORM models
 │   │   ├── base.py          # Declarative base
 │   │   ├── user.py          # User model
@@ -41,12 +43,22 @@ agent-base-project/
 │   │   └── profile_service.py # Profile management logic
 │   ├── routers/             # API endpoints
 │   │   ├── auth.py          # Authentication routes
+│   │   ├── chatbot.py       # Chatbot/Agent routes
 │   │   ├── users.py         # User management routes
 │   │   └── profiles.py      # Profile routes
 │   └── dependencies.py      # Shared dependencies (auth, etc.)
+├── agents/                  # LangGraph agents
+│   └── basic/               # Basic chatbot agent
+│       ├── agent.py         # Agent graph definition
+│       ├── state.py         # Agent state schema
+│       └── nodes/           # Agent nodes
+│           └── chatbot/     # Chatbot node
+│               ├── node.py  # Node implementation
+│               └── prompt.py # System prompt
 ├── alembic/                 # Database migrations
 ├── tests/                   # Test suite
 ├── .env.example             # Environment variables template
+├── langgraph.json           # LangGraph configuration
 ├── requirements.txt         # Python dependencies
 └── README.md               # This file
 ```
@@ -95,10 +107,20 @@ cp .env.example .env
 Then edit the `.env` file with your configuration:
 
 ```env
+# Database Configuration
 DATABASE_URL=sqlite:///./app.db
+
+# JWT Configuration
 SECRET_KEY=your-super-secret-key-here-change-in-production
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# OpenAI Configuration (Required for LangGraph Agent)
+OPENAI_API_KEY=sk-your-openai-api-key-here
+
+# LangSmith Configuration (Optional - for tracing and monitoring)
+LANGSMITH_TRACING=true
+LANGSMITH_API_KEY=lsv2_xxx
 ```
 
 **Generate a secure SECRET_KEY:**
@@ -109,6 +131,8 @@ openssl rand -hex 32
 # Or using Python
 python -c "import secrets; print(secrets.token_hex(32))"
 ```
+
+**Important:** You need to set your OpenAI API key to use the chatbot agent. Get your API key from [OpenAI Platform](https://platform.openai.com/api-keys).
 
 ### Step 5: Initialize Database
 
@@ -239,6 +263,25 @@ make dev        # Run development server
   - `preferences` field can store JSON string for custom settings
   - Returns 404 if profile not found
 
+### Chatbot (`/chatbot`)
+
+🔒 All chatbot endpoints require authentication (Bearer token)
+
+- **`POST /chatbot`** - Send a message to the chatbot agent
+  - **Body**: `{ "message": "your message here" }`
+  - **Returns**: String with the agent's response
+  - **Status**: 200 OK
+  - Uses LangGraph agent with state persistence (thread_id: "1")
+  - Maintains conversation history across requests
+
+- **`POST /chatbot/stream`** - Send a message and receive streaming response
+  - **Body**: `{ "message": "your message here" }`
+  - **Returns**: Server-Sent Events (SSE) stream with agent's response chunks
+  - **Status**: 200 OK
+  - **Content-Type**: `text/event-stream`
+  - Uses LangGraph agent with state persistence (thread_id: "2")
+  - Streams response in real-time as it's generated
+
 ## Usage Examples
 
 ### 1. Register a New User
@@ -326,6 +369,42 @@ curl -X PATCH "http://localhost:8000/profiles/me" \
   }'
 ```
 
+### 7. Chat with the Agent (Non-Streaming)
+
+```bash
+curl -X POST "http://localhost:8000/chatbot" \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Hello! What can you help me with?"
+  }'
+```
+
+**Response:**
+```
+"Hello! I'm here to help you with a variety of tasks..."
+```
+
+### 8. Chat with the Agent (Streaming)
+
+```bash
+curl -X POST "http://localhost:8000/chatbot/stream" \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Tell me a short story"
+  }'
+```
+
+**Response (Server-Sent Events):**
+```
+data: Once
+data:  upon
+data:  a
+data:  time
+data: ...
+```
+
 ## Database Migrations
 
 ```bash
@@ -363,6 +442,260 @@ pytest -v
 # Run and stop on first failure
 pytest -x
 ```
+
+## LangGraph Agent Testing
+
+The project includes a basic chatbot agent built with LangGraph. You can test it in multiple ways:
+
+### Option 1: Testing with LangGraph Studio (LangSmith)
+
+LangGraph Studio provides a visual interface for testing and debugging your agents with full tracing capabilities.
+
+#### Prerequisites
+
+1. **Install LangGraph CLI** (if not already installed):
+   ```bash
+   pip install langgraph-cli
+   ```
+
+2. **Configure LangSmith** (optional but recommended for tracing):
+   
+   Get your API key from [LangSmith](https://smith.langchain.com/) and add to `.env`:
+   ```env
+   LANGSMITH_TRACING=true
+   LANGSMITH_API_KEY=lsv2_your_api_key_here
+   ```
+
+3. **Set OpenAI API Key** in `.env`:
+   ```env
+   OPENAI_API_KEY=sk-your-openai-api-key-here
+   ```
+
+#### Start LangGraph Dev Server
+
+Run the following command in your project root:
+
+```bash
+langgraph dev
+```
+
+This will:
+- Start the LangGraph development server
+- Open LangGraph Studio in your browser (typically at `http://localhost:8123`)
+- Enable hot-reloading for agent changes
+- Provide visual debugging and tracing
+
+#### Using LangGraph Studio
+
+1. **Select the Agent**: Choose the `chatbot` graph from the dropdown
+2. **Configure Thread**: Set a thread ID for conversation persistence
+3. **Send Messages**: Type messages in the input box and see responses
+4. **View State**: Inspect the agent's state at each step
+5. **Trace Execution**: See detailed traces of LLM calls and node executions
+
+#### LangGraph Configuration
+
+The agent is configured in `langgraph.json`:
+```json
+{
+  "dependencies": ["."],
+  "graphs": {
+    "chatbot": "agents/basic/agent.py:make_graph"
+  },
+  "env": ".env"
+}
+```
+
+### Option 2: Testing via FastAPI Endpoints
+
+You can test the agent through the FastAPI endpoints after starting the application.
+
+#### Start the FastAPI Server
+
+```bash
+# Using the run script
+python run.py
+
+# Or using uvicorn directly
+uvicorn src.main:app --reload
+```
+
+#### Test Non-Streaming Endpoint
+
+**Using curl:**
+```bash
+# First, get an authentication token
+TOKEN=$(curl -s -X POST "http://localhost:8000/auth/token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=your_email@example.com&password=your_password" \
+  | jq -r '.access_token')
+
+# Then chat with the agent
+curl -X POST "http://localhost:8000/chatbot" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Hello! Can you help me?"
+  }'
+```
+
+**Using Python:**
+```python
+import requests
+
+# Login
+response = requests.post(
+    "http://localhost:8000/auth/token",
+    data={"username": "your_email@example.com", "password": "your_password"}
+)
+token = response.json()["access_token"]
+
+# Chat with agent
+response = requests.post(
+    "http://localhost:8000/chatbot",
+    headers={"Authorization": f"Bearer {token}"},
+    json={"message": "Hello! Can you help me?"}
+)
+print(response.text)
+```
+
+**Using the provided `api.http` file:**
+
+Open `api.http` in VS Code with the REST Client extension:
+
+1. First, execute the login request to get a token
+2. Copy the `access_token` from the response
+3. Update the `@token` variable at the top of the file
+4. Execute the chatbot requests
+
+```http
+### Chat (Non-Streaming)
+POST {{baseUrl}}/chatbot HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "message": "Hello! What can you help me with?"
+}
+
+### Chat (Streaming)
+POST {{baseUrl}}/chatbot/stream HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "message": "Tell me a short story"
+}
+```
+
+#### Test Streaming Endpoint
+
+**Using curl:**
+```bash
+curl -N -X POST "http://localhost:8000/chatbot/stream" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Tell me a story"
+  }'
+```
+
+**Using Python with SSE:**
+```python
+import requests
+import json
+
+# Login first (same as above)
+response = requests.post(
+    "http://localhost:8000/auth/token",
+    data={"username": "your_email@example.com", "password": "your_password"}
+)
+token = response.json()["access_token"]
+
+# Stream chat response
+response = requests.post(
+    "http://localhost:8000/chatbot/stream",
+    headers={"Authorization": f"Bearer {token}"},
+    json={"message": "Tell me a story"},
+    stream=True
+)
+
+for line in response.iter_lines():
+    if line:
+        decoded_line = line.decode('utf-8')
+        if decoded_line.startswith('data: '):
+            content = decoded_line[6:]  # Remove 'data: ' prefix
+            print(content, end='', flush=True)
+```
+
+### Option 3: Testing via Swagger UI
+
+1. Start the FastAPI server: `python run.py`
+2. Open http://localhost:8000/docs
+3. Authenticate:
+   - Click "Authorize" button
+   - Login via `/auth/token` endpoint
+   - Copy the access token
+   - Enter `Bearer <token>` in the authorization dialog
+4. Test the chatbot endpoints:
+   - Expand `/chatbot` POST endpoint
+   - Click "Try it out"
+   - Enter your message in the request body
+   - Click "Execute"
+
+### Agent Architecture
+
+The basic chatbot agent consists of:
+
+- **State**: Defined in `agents/basic/state.py` - Manages conversation messages
+- **Graph**: Defined in `agents/basic/agent.py` - Orchestrates the conversation flow
+- **Nodes**: 
+  - `chatbot` node in `agents/basic/nodes/chatbot/node.py` - Handles LLM interaction
+- **Checkpoint**: PostgreSQL-based state persistence for conversation history
+- **LLM**: Uses OpenAI's GPT-4o-mini model
+
+### Conversation Persistence
+
+The agent uses PostgreSQL checkpointing to maintain conversation history:
+
+- **Thread ID**: Each conversation has a unique thread ID
+- **State Persistence**: Messages are stored and retrieved across requests
+- **Multiple Conversations**: Different thread IDs maintain separate conversations
+
+Example with different threads:
+```bash
+# Conversation 1 (thread_id: "1" - used by /chatbot endpoint)
+curl -X POST "http://localhost:8000/chatbot" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"message": "My name is Alice"}'
+
+curl -X POST "http://localhost:8000/chatbot" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"message": "What is my name?"}'
+# Response: "Your name is Alice"
+
+# Conversation 2 (thread_id: "2" - used by /chatbot/stream endpoint)
+# This will be a separate conversation with no memory of "Alice"
+```
+
+### Customizing the Agent
+
+To modify the agent behavior:
+
+1. **Change the LLM model**: Edit `agents/basic/nodes/chatbot/node.py`
+   ```python
+   llm = init_chat_model("openai:gpt-4o", temperature=0.7)
+   ```
+
+2. **Modify the system prompt**: Edit `agents/basic/nodes/chatbot/prompt.py`
+
+3. **Add new nodes**: Create new node files in `agents/basic/nodes/`
+
+4. **Update the graph**: Modify `agents/basic/agent.py` to add edges and nodes
+
+5. **Test changes**: Use `langgraph dev` for hot-reloading during development
 
 ## Architecture Principles
 
@@ -469,6 +802,9 @@ make downgrade   # Rollback last migration
 | `SECRET_KEY` | JWT signing secret key | - | Yes |
 | `ALGORITHM` | JWT algorithm | `HS256` | No |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Token expiration time in minutes | `30` | No |
+| `OPENAI_API_KEY` | OpenAI API key for LangGraph agent | - | Yes (for chatbot) |
+| `LANGSMITH_TRACING` | Enable LangSmith tracing | `false` | No |
+| `LANGSMITH_API_KEY` | LangSmith API key for monitoring | - | No |
 
 **Generate a secure SECRET_KEY:**
 ```bash
@@ -476,6 +812,10 @@ openssl rand -hex 32
 # or using Python:
 python -c "import secrets; print(secrets.token_hex(32))"
 ```
+
+**Get API Keys:**
+- OpenAI: https://platform.openai.com/api-keys
+- LangSmith: https://smith.langchain.com/
 
 ## Troubleshooting
 
@@ -504,10 +844,34 @@ alembic revision --autogenerate -m "initial migration"
 alembic upgrade head
 ```
 
+### LangGraph agent errors
+
+**"OpenAI API key not found"**
+- Ensure `OPENAI_API_KEY` is set in your `.env` file
+- Verify the key is valid and has credits available
+
+**"Checkpointer not initialized"**
+- Make sure the PostgreSQL database is running
+- Check the `DB_URI` in `src/db/checkpoint.py` is correct
+- Verify the database is accessible
+
+**"langgraph dev" command not found**
+- Install LangGraph CLI: `pip install langgraph-cli`
+- Ensure you're in the virtual environment
+
+**Agent not responding or timing out**
+- Check your OpenAI API key has sufficient credits
+- Verify internet connection for API calls
+- Check LangSmith dashboard for error traces (if enabled)
+
 ## Project Status
 
 This is a **production-ready template** that includes:
 - ✅ JWT authentication with secure password hashing
+- ✅ LangGraph AI agents with state persistence
+- ✅ Streaming and non-streaming chatbot endpoints
+- ✅ PostgreSQL checkpointing for conversation history
+- ✅ LangSmith integration for tracing and monitoring
 - ✅ Modular architecture following best practices
 - ✅ Complete test suite with 85%+ coverage
 - ✅ Database migrations with Alembic

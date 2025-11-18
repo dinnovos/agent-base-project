@@ -46,8 +46,31 @@ Authorization: Bearer {{token}}
 # Útil cuando el token está a punto de expirar
 
 ### ============================================
+### Chatbot Endpoints (Require Authentication)
+### ============================================
+
+### Chat
+POST {{baseUrl}}/chatbot HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "message": "hi"
+}
+
+### Chat Stream
+POST {{baseUrl}}/chatbot/stream HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "message": "hi, how are you?"
+}
+
+### ============================================
 ### User Endpoints (Require Authentication)
 ### ============================================
+
 
 ### Get Current User Info
 GET {{baseUrl}}/users/me HTTP/1.1
