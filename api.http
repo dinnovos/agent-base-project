@@ -1,0 +1,91 @@
+### Variables
+@baseUrl = http://localhost:8000
+# FLUJO DE AUTENTICACIÓN:
+# 1. Ejecuta POST /auth/login para obtener un token
+# 2. Copia el "access_token" de la respuesta
+# 3. Pega el token aquí abajo (reemplaza todo lo que está después del =)
+# 4. Los tokens expiran en 30 minutos - usa POST /auth/refresh para renovar
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZW1vMUBleGFtcGxlLmNvbSIsImV4cCI6MTc2MzQzOTIwNX0.5ChqZ_flX20n9X7El18o8CMQ9DgUWNti7Ubpw7hWZRs
+
+### Root - Health Check
+GET {{baseUrl}}/ HTTP/1.1
+
+### Health Check
+GET {{baseUrl}}/health HTTP/1.1
+
+### ============================================
+### Authentication Endpoints
+### ============================================
+
+### Register New User
+POST {{baseUrl}}/auth/register HTTP/1.1
+Content-Type: application/json
+
+{
+  "email": "demo1@example.com",
+  "username": "deni1",
+  "password": "SecurePassword123",
+  "first_name": "Demo 1",
+  "last_name": "User"
+}
+
+### Login with JSON (Recommended)
+POST {{baseUrl}}/auth/login HTTP/1.1
+Content-Type: application/json
+
+{
+  "email": "demo1@example.com",
+  "password": "SecurePassword123"
+}
+
+### Refresh Token
+POST {{baseUrl}}/auth/refresh HTTP/1.1
+Authorization: Bearer {{token}}
+
+# Este endpoint genera un nuevo token usando el token actual
+# Útil cuando el token está a punto de expirar
+
+### ============================================
+### User Endpoints (Require Authentication)
+### ============================================
+
+### Get Current User Info
+GET {{baseUrl}}/users/me HTTP/1.1
+Authorization: Bearer {{token}}
+
+### Update Current User Info
+PATCH {{baseUrl}}/users/me HTTP/1.1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "first_name": "Updated",
+  "last_name": "Name"
+}
+
+### Change Password
+POST {{baseUrl}}/users/me/change-password HTTP/1.1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "current_password": "SecurePassword123",
+  "new_password": "NewSecurePassword456"
+}
+
+### ============================================
+### Profile Endpoints (Require Authentication)
+### ============================================
+
+### Get Current User Profile
+GET {{baseUrl}}/profiles/me HTTP/1.1
+Authorization: Bearer {{token}}
+
+### Update Current User Profile
+PATCH {{baseUrl}}/profiles/me HTTP/1.1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "time_zone": "America/Bogota"
+}
