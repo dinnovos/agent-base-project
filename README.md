@@ -2,6 +2,19 @@
 
 A modular FastAPI project template with JWT authentication, SQLAlchemy ORM, Alembic migrations, and LangGraph AI agents.
 
+## Purpose
+
+This project serves as a **production-ready template** for building AI agents with LangGraph and exposing them through FastAPI endpoints. It eliminates the need to configure authentication, database management, API routing, and agent infrastructure from scratch.
+
+**Key Goals:**
+- **Rapid Agent Development**: Start building LangGraph agents immediately without boilerplate setup
+- **Production-Ready API**: Pre-configured FastAPI with JWT authentication, CORS, and comprehensive error handling
+- **State Persistence**: Built-in PostgreSQL checkpointing for maintaining conversation history
+- **Developer Experience**: Hot-reloading with `langgraph dev`, interactive API docs, and comprehensive testing tools
+- **Scalability**: Modular architecture that scales from simple chatbots to complex multi-agent systems
+
+Whether you're prototyping a conversational AI, building a production agent system, or learning LangGraph, this template provides everything you need to get started quickly.
+
 ## Features
 
 - **FastAPI** - Modern, fast web framework for building APIs
