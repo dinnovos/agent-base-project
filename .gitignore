@@ -73,6 +73,9 @@ alembic/versions/*.py
 
 # Logs
 *.log
+logs/
+
+./claude
 
 # OS
 .DS_Store
