@@ -8,6 +8,7 @@ from src.db.database import engine
 from src.models.base import Base
 from src.models import user, profile  # Import models to ensure they're registered
 from src.core.logging import setup_logging
+from src.db.checkpoint import lifespan
 
 setup_logging()
 # Create database tables
@@ -16,7 +17,8 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title="FastAPI Base Project",
     description="A modular FastAPI project with JWT authentication and SQLAlchemy",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # CORS middleware configuration
