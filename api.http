@@ -5,7 +5,7 @@
 # 2. Copia el "access_token" de la respuesta
 # 3. Pega el token aquí abajo (reemplaza todo lo que está después del =)
 # 4. Los tokens expiran en 30 minutos - usa POST /auth/refresh para renovar
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZW1vMUBleGFtcGxlLmNvbSIsImV4cCI6MTc2MzQzOTIwNX0.5ChqZ_flX20n9X7El18o8CMQ9DgUWNti7Ubpw7hWZRs
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZW1vMUBleGFtcGxlLmNvbSIsImV4cCI6MTc2MzU3NDcwN30.bxsxWgf4JZndQ7jhJkRG9oexT0A2TM210ySYy9MK_Ew
 
 ### Root - Health Check
 GET {{baseUrl}}/ HTTP/1.1
@@ -23,10 +23,10 @@ Content-Type: application/json
 
 {
   "email": "demo1@example.com",
-  "username": "deni1",
+  "username": "demo1",
   "password": "SecurePassword123",
   "first_name": "Demo 1",
-  "last_name": "User"
+  "last_name": "User 1"
 }
 
 ### Login with JSON (Recommended)
@@ -82,8 +82,7 @@ Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-  "first_name": "Updated",
-  "last_name": "Name"
+  "first_name": "Demo 1 updated"
 }
 
 ### Change Password

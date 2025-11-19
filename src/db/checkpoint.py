@@ -3,13 +3,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi import Depends
 from typing import Annotated
+from src.core.config import settings
 
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
-from dotenv import load_dotenv
-load_dotenv()
-
-DATABASE_URL = os.getenv("DATABASE_URL")
+DB_URI  = settings.DATABASE_URL
 
 # Global checkpointer instance
 _checkpointer: AsyncPostgresSaver | None = None
@@ -17,7 +15,7 @@ _checkpointer: AsyncPostgresSaver | None = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global _checkpointer
-    async with AsyncPostgresSaver.from_conn_string(DATABASE_URL) as checkpointer:
+    async with AsyncPostgresSaver.from_conn_string(DB_URI) as checkpointer:
         _checkpointer = checkpointer
         await _checkpointer.setup()
         yield
