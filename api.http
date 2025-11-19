@@ -5,7 +5,7 @@
 # 2. Copia el "access_token" de la respuesta
 # 3. Pega el token aquí abajo (reemplaza todo lo que está después del =)
 # 4. Los tokens expiran en 30 minutos - usa POST /auth/refresh para renovar
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZW1vMUBleGFtcGxlLmNvbSIsImV4cCI6MTc2MzU3NDcwN30.bxsxWgf4JZndQ7jhJkRG9oexT0A2TM210ySYy9MK_Ew
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZW1vMUBleGFtcGxlLmNvbSIsImV4cCI6MTc2MzU3ODYwN30.JpmGj9-XjryeJOTAmtu-s60BIqvL9soju8TD6PeTx5A
 
 ### Root - Health Check
 GET {{baseUrl}}/ HTTP/1.1

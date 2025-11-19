@@ -32,6 +32,28 @@ def login_json(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
+@router.post("/token", response_model=Token)
+def login_form(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db)
+):
+    """
+    Login endpoint with form data (OAuth2 compatible).
+    Accepts 'username' field (email) and 'password'.
+    Returns JWT access token on successful authentication.
+    """
+    user = authenticate_user(db, email=form_data.username, password=form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    access_token = create_user_token(user)
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 def register(
     user_data: UserCreate,

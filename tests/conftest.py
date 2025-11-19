@@ -1,4 +1,6 @@
 import pytest
+import asyncio
+import sys
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -6,25 +8,42 @@ from src.main import app
 from src.db.session import get_db
 from src.models.base import Base
 
-# Test database URL (in-memory SQLite)
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
+# Use SelectorEventLoop on Windows for psycopg compatibility
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
-)
+# Test database URL - use PostgreSQL
+SQLALCHEMY_DATABASE_URL = "postgresql://postgres:zUBMRKsAxGvyImaTOkvJgvcEVduPWJjT@autorack.proxy.rlwy.net:50610/railway"
+
+engine = create_engine(SQLALCHEMY_DATABASE_URL)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+@pytest.fixture(scope="session")
+def event_loop():
+    """Create event loop for test session."""
+    loop = asyncio.new_event_loop()
+    yield loop
+    loop.close()
 
 
 @pytest.fixture(scope="function")
 def db_session():
-    """Create a fresh database for each test."""
-    Base.metadata.create_all(bind=engine)
-    db = TestingSessionLocal()
+    """Create a fresh database session for each test with transaction rollback."""
+    # Start a transaction
+    connection = engine.connect()
+    transaction = connection.begin()
+    
+    # Create session bound to this transaction
+    session = TestingSessionLocal(bind=connection)
+    
     try:
-        yield db
+        yield session
     finally:
-        db.close()
-        Base.metadata.drop_all(bind=engine)
+        session.close()
+        # Rollback the transaction to undo all changes
+        transaction.rollback()
+        connection.close()
 
 
 @pytest.fixture(scope="function")
