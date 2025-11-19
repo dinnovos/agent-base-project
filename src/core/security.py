@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 # Bcrypt rounds: 12 is default (secure but slow), 10 is faster for development
 # In production, use 12-14 rounds. In development, 10 is acceptable.
-BCRYPT_ROUNDS = 10  # Adjust based on environment
+BCRYPT_ROUNDS = settings.BCRYPT_ROUNDS
 
 
 def hash_password(password: str) -> str:
