@@ -1,0 +1,9 @@
+{
+  "project_name": "{{ cookiecutter.project_name }}",
+  "project_slug": "{{ cookiecutter.project_slug }}",
+  "description": "{{ cookiecutter.description }}",
+  "port": "{{ cookiecutter.port }}",
+  "author_name": "{{ cookiecutter.author_name }}",
+  "author_email": "{{ cookiecutter.author_email }}",
+  "python_version": "{{ cookiecutter.python_version }}"
+}

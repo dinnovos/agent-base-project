@@ -9,35 +9,27 @@ from cookiecutter.main import cookiecutter
 def main():
     """Main entry point for the CLI."""
     # Get the path to the template directory
-    # Multiple search paths for different installation scenarios
-    search_paths = []
-    
-    # 1. Development mode: parent directory
-    cli_dir = Path(__file__).parent.parent
-    search_paths.append(cli_dir / "cookiecutter-template")
-    
-    # 2. Installed in site-packages
+    # The template is now bundled inside the dinnovos_cli package
     import dinnovos_cli
-    package_dir = Path(dinnovos_cli.__file__).parent.parent
-    search_paths.append(package_dir / "cookiecutter-template")
     
-    # 3. Check if template files are in the package itself
-    search_paths.append(package_dir / "dinnovos_cli" / "cookiecutter-template")
+    # Primary location: inside the installed package
+    package_dir = Path(dinnovos_cli.__file__).parent
+    template_path = package_dir / "cookiecutter-template"
     
-    # 4. Check in parent of package_dir (for global installs)
-    search_paths.append(package_dir.parent / "cookiecutter-template")
+    # Fallback: development mode (parent directory)
+    if not template_path.exists():
+        cli_dir = Path(__file__).parent.parent
+        template_path = cli_dir / "cookiecutter-template"
     
-    template_path = None
-    for path in search_paths:
-        if path.exists():
-            template_path = path
-            break
-    
-    if not template_path:
+    if not template_path.exists():
         print(f"Error: Template directory not found")
-        print(f"Searched in:")
-        for path in search_paths:
-            print(f"  - {path}")
+        print(f"Expected location: {package_dir / 'cookiecutter-template'}")
+        print(f"Fallback location: {cli_dir / 'cookiecutter-template'}")
+        print(f"\nPackage directory: {package_dir}")
+        print(f"Package contents:")
+        if package_dir.exists():
+            for item in package_dir.iterdir():
+                print(f"  - {item.name}")
         sys.exit(1)
     
     try:

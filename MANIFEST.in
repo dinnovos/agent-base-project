@@ -1,0 +1,4 @@
+include README.md
+include LICENSE
+recursive-include cookiecutter-template *
+recursive-include dinnovos_cli *

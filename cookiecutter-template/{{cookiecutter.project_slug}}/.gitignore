@@ -75,20 +75,9 @@ alembic/versions/*.py
 *.log
 logs/
 
-./claude
-
 # LangGraph
 .langgraph_api/
 
 # OS
 .DS_Store
 Thumbs.db
-
-# Build and distribution
-build/
-dist/
-*.egg-info/
-*.egg
-
-# Keep dinnovos_cli/cookiecutter-template (needed for distribution)
-!dinnovos_cli/cookiecutter-template/
