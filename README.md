@@ -196,15 +196,6 @@ docker-compose up
 
 This will start both the application and a PostgreSQL database.
 
-### Using Makefile (Linux/Mac)
-
-If you have `make` installed:
-
-```bash
-make install    # Install dependencies
-make dev        # Run development server
-```
-
 ## API Endpoints
 
 ### Root
@@ -790,21 +781,6 @@ docker run -d -p 8000:8000 \
   -e DATABASE_URL="sqlite:///./app.db" \
   -e SECRET_KEY="your-secret-key" \
   fastapi-base
-```
-
-## Useful Commands (Makefile)
-
-If you have `make` installed (Linux/Mac), you can use these shortcuts:
-
-```bash
-make help        # Show all available commands
-make install     # Install dependencies
-make dev         # Run development server
-make test        # Run tests
-make clean       # Clean cache and build files
-make migrate     # Create new migration (interactive)
-make upgrade     # Apply migrations
-make downgrade   # Rollback last migration
 ```
 
 ## Environment Variables Reference
