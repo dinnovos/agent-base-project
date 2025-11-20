@@ -10,11 +10,17 @@ from src.schemas.profile import ProfileRead, ProfileUpdate
 from src.services.profile_service import get_profile_by_user_id, update_profile
 from src.dependencies import get_current_user
 from src.db.checkpoint import lifespan, CheckpointerDep
+from src.db.database import SessionLocal
+
+from src.services.usage_log_service import create_usage_log
+from src.schemas.usage_log import UsageLogCreate
 
 from agents.basic.agent import make_graph
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel, Field
 from fastapi.responses import StreamingResponse
+
+import uuid
 
 router = APIRouter(prefix="/chatbot", tags=["Chatbot"], lifespan=lifespan)
 
@@ -32,15 +38,24 @@ class Message(BaseModel):
 @limiter.limit("10/minute")
 async def chat(request: Request, item: Message, checkpointer: CheckpointerDep, current_user: User = Depends(get_current_user)):
 
-    config = {
-        "configurable": {
-            "thread_id": f"thread-{current_user.id}",
-        }
-    }
-
+    user_id = current_user.id
     agent = make_graph(config={"checkpointer": checkpointer})
 
-    state = {"messages": [HumanMessage(content=item.message)]}
+    state = {
+        "messages": [HumanMessage(content=item.message)],
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0
+    }
+
+    config = {
+        "configurable": {
+            "thread_id": f"thread-{user_id}",
+        },
+        "user_id": user_id,
+        "main_call_tid": f"parent-{uuid.uuid4()}",
+    }
+
     response = await agent.ainvoke(state, config=config)
 
     message = response["messages"][-1]
@@ -51,10 +66,14 @@ async def chat(request: Request, item: Message, checkpointer: CheckpointerDep, c
 @limiter.limit("10/minute")
 async def stream_chat(request: Request, item: Message, checkpointer: CheckpointerDep, current_user: User = Depends(get_current_user)):
 
+    user_id = current_user.id
+    
     config = {
         "configurable": {
-            "thread_id": f"thread-{current_user.id}",
-        }
+            "thread_id": f"thread-{user_id}",
+        },
+        "user_id": user_id,
+        "main_call_tid": f"parent-{uuid.uuid4()}",
     }
 
     human_message = HumanMessage(content=item.message)

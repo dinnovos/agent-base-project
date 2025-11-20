@@ -16,6 +16,7 @@ from src.models.base import Base
 # Import all models to ensure they're registered with Base
 from src.models.user import User
 from src.models.profile import Profile
+from src.models.usage_log import UsageLog
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
