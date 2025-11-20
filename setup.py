@@ -1,13 +1,23 @@
 """Setup configuration for dinnovos-agent-cli."""
 
 from setuptools import setup, find_packages
+from pathlib import Path
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
+# Collect all template files
+template_files = []
+template_dir = Path("cookiecutter-template")
+if template_dir.exists():
+    for file_path in template_dir.rglob("*"):
+        if file_path.is_file():
+            relative_path = file_path.relative_to(".")
+            template_files.append(str(relative_path))
+
 setup(
     name="dinnovos-agent-cli",
-    version="1.0.1",
+    version="1.0.2",
     author="Dinnovos",
     author_email="info.dinnovos@gmail.com",
     description="CLI tool to create new AI agent projects based on LangGraph and FastAPI",
@@ -17,7 +27,7 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     package_data={
-        "": ["cookiecutter-template/**/*"],
+        "": template_files,
     },
     classifiers=[
         "Programming Language :: Python :: 3",

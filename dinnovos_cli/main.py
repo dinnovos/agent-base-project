@@ -9,19 +9,35 @@ from cookiecutter.main import cookiecutter
 def main():
     """Main entry point for the CLI."""
     # Get the path to the template directory
-    # First try: parent directory (development mode)
+    # Multiple search paths for different installation scenarios
+    search_paths = []
+    
+    # 1. Development mode: parent directory
     cli_dir = Path(__file__).parent.parent
-    template_path = cli_dir / "cookiecutter-template"
+    search_paths.append(cli_dir / "cookiecutter-template")
     
-    # Second try: installed package location
-    if not template_path.exists():
-        import dinnovos_cli
-        package_dir = Path(dinnovos_cli.__file__).parent.parent
-        template_path = package_dir / "cookiecutter-template"
+    # 2. Installed in site-packages
+    import dinnovos_cli
+    package_dir = Path(dinnovos_cli.__file__).parent.parent
+    search_paths.append(package_dir / "cookiecutter-template")
     
-    if not template_path.exists():
+    # 3. Check if template files are in the package itself
+    search_paths.append(package_dir / "dinnovos_cli" / "cookiecutter-template")
+    
+    # 4. Check in parent of package_dir (for global installs)
+    search_paths.append(package_dir.parent / "cookiecutter-template")
+    
+    template_path = None
+    for path in search_paths:
+        if path.exists():
+            template_path = path
+            break
+    
+    if not template_path:
         print(f"Error: Template directory not found")
-        print(f"Tried: {cli_dir / 'cookiecutter-template'}")
+        print(f"Searched in:")
+        for path in search_paths:
+            print(f"  - {path}")
         sys.exit(1)
     
     try:
