@@ -84,7 +84,7 @@ The easiest way to create a new project based on this template is using the `din
 
 ```bash
 # Install the dinnovos CLI (if not already installed)
-pip install dinnovos-cli
+pip install dinnovos-agent-cli
 
 # Create a new agent project
 dinnovos-create-agent my-agent-project
