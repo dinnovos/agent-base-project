@@ -18,7 +18,7 @@ if template_dir.exists():
 
 setup(
     name="dinnovos-agent-cli",
-    version="1.0.6",
+    version="1.0.7",
     author="Dinnovos",
     author_email="info.dinnovos@gmail.com",
     description="CLI tool to create new AI agent projects based on LangGraph and FastAPI",
