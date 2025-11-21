@@ -13,6 +13,7 @@ Esta guía te muestra cómo crear tu propio proyecto basado en este template mie
 5. [Resolver Conflictos](#resolver-conflictos)
 6. [Escenarios Comunes](#escenarios-comunes)
 7. [Troubleshooting](#troubleshooting)
+8. [Contribuir al Proyecto Original (Pull Requests)](#-contribuir-al-proyecto-original-pull-requests) ⭐ NUEVO
 
 ---
 
