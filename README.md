@@ -15,6 +15,13 @@ This project serves as a **production-ready template** for building AI agents wi
 
 Whether you're prototyping a conversational AI, building a production agent system, or learning LangGraph, this template provides everything you need to get started quickly.
 
+## 📚 Documentation
+
+- **[GETTING_STARTED.md](GETTING_STARTED.md)** - Complete beginner-friendly setup guide
+- **[FORK_WORKFLOW.md](FORK_WORKFLOW.md)** - How to fork and keep your project updated
+- **[QUICKSTART.md](QUICKSTART.md)** - Tutorial for creating new models
+- **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** - Production deployment guide
+
 ## Features
 
 - **FastAPI** - Modern, fast web framework for building APIs
