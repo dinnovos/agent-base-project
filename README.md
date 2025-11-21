@@ -81,6 +81,8 @@ agent-base-project/
 
 ## Setup Instructions
 
+> **🚀 New to this project?** Check out **[GETTING_STARTED.md](GETTING_STARTED.md)** for a complete beginner-friendly guide with troubleshooting tips!
+
 Follow these steps to set up and run the project:
 
 ### Step 0: Clone the Repository
