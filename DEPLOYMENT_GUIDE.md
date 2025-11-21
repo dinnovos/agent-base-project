@@ -15,6 +15,24 @@
 
 ## Development Setup
 
+### Step 0: Clone the Repository
+
+First, get the code on your machine:
+
+```bash
+# Using HTTPS
+git clone https://github.com/dinnovos/agent-base-project.git
+cd agent-base-project
+
+# Or using SSH
+git clone git@github.com:dinnovos/agent-base-project.git
+cd agent-base-project
+
+# Or using GitHub CLI
+gh repo clone dinnovos/agent-base-project
+cd agent-base-project
+```
+
 ### Windows
 
 ```bash

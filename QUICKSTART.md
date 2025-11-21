@@ -15,6 +15,30 @@ This guide walks you through the complete process of setting up the project and 
 
 ## Initial Setup
 
+### Step 0: Clone the Repository
+
+First, clone the repository to your local machine:
+
+**Using HTTPS:**
+```bash
+git clone https://github.com/dinnovos/agent-base-project.git
+cd agent-base-project
+```
+
+**Using SSH:**
+```bash
+git clone git@github.com:dinnovos/agent-base-project.git
+cd agent-base-project
+```
+
+**Using GitHub CLI:**
+```bash
+gh repo clone dinnovos/agent-base-project
+cd agent-base-project
+```
+
+> **Tip:** If you want to create your own project based on this template, click the "Use this template" button on GitHub instead of cloning.
+
 ### Step 1: Install uv
 
 First, install `uv` if you haven't already:
