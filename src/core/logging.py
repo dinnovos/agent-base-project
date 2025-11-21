@@ -2,6 +2,9 @@ import logging
 import sys
 from pathlib import Path
 
+# Create logger instance for use throughout the application
+logger = logging.getLogger(__name__)
+
 def setup_logging():
     """Configure logging for the application."""
     log_dir = Path("logs")
