@@ -19,13 +19,15 @@ Whether you're prototyping a conversational AI, building a production agent syst
 
 - **FastAPI** - Modern, fast web framework for building APIs
 - **SQLAlchemy ORM** - Powerful database ORM with support for multiple databases
-- **JWT Authentication** - Secure authentication using JSON Web Tokens
+- **JWT Authentication** - Secure authentication using JSON Web Tokens with bcrypt password hashing
+- **Rate Limiting** - Per-user rate limiting for chatbot endpoints (5 queries/24 hours configurable)
 - **Alembic** - Database migration management
 - **LangGraph Agents** - AI agents with state persistence using LangGraph
 - **Modular Architecture** - Clean separation of concerns with routers, services, and models
 - **Pydantic Schemas** - Request/response validation and serialization
 - **CORS Support** - Cross-Origin Resource Sharing enabled
 - **Base Models** - Pre-built User and Profile models with relationships
+- **Usage Tracking** - Automatic logging of all chatbot queries with token usage statistics
 
 ## Project Structure
 
@@ -75,6 +77,30 @@ agent-base-project/
 ├── requirements.txt         # Python dependencies
 └── README.md               # This file
 ```
+
+## Quick Start with dinnovos-create-agent
+
+The easiest way to create a new project based on this template is using the `dinnovos-create-agent` CLI command:
+
+```bash
+# Install the dinnovos CLI (if not already installed)
+pip install dinnovos-cli
+
+# Create a new agent project
+dinnovos-create-agent my-agent-project
+
+# Navigate to the project
+cd my-agent-project
+
+# Follow the setup instructions below
+```
+
+This command will:
+- Create a new project directory with the template structure
+- Copy all necessary files and configurations
+- Set up the project structure for your custom agent
+
+---
 
 ## Setup Instructions
 
@@ -127,6 +153,13 @@ DATABASE_URL=sqlite:///./app.db
 SECRET_KEY=your-super-secret-key-here-change-in-production
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# Bcrypt Configuration
+BCRYPT_ROUNDS=10
+
+# Chatbot Rate Limiting
+CHATBOT_QUERY_LIMIT=5
+CHATBOT_QUERY_WINDOW_HOURS=24
 
 # OpenAI Configuration (Required for LangGraph Agent)
 OPENAI_API_KEY=sk-your-openai-api-key-here
@@ -275,16 +308,26 @@ This will start both the application and a PostgreSQL database.
   - **Body**: `{ "message": "your message here" }`
   - **Returns**: String with the agent's response
   - **Status**: 200 OK
+  - **Rate Limit**: 5 queries per 24 hours per user
   - Uses LangGraph agent with state persistence (thread_id: "1")
   - Maintains conversation history across requests
+  - Returns HTTP 429 if rate limit exceeded
 
 - **`POST /chatbot/stream`** - Send a message and receive streaming response
   - **Body**: `{ "message": "your message here" }`
   - **Returns**: Server-Sent Events (SSE) stream with agent's response chunks
   - **Status**: 200 OK
   - **Content-Type**: `text/event-stream`
+  - **Rate Limit**: 5 queries per 24 hours per user
   - Uses LangGraph agent with state persistence (thread_id: "2")
   - Streams response in real-time as it's generated
+  - Returns HTTP 429 if rate limit exceeded
+
+- **`GET /chatbot/usage`** - Check current rate limit usage
+  - **Returns**: `{ "used": int, "remaining": int, "limit": int, "window_hours": int, "can_query": bool }`
+  - **Status**: 200 OK
+  - Shows how many queries user has made in the current 24-hour window
+  - Shows remaining queries before hitting the limit
 
 ## Usage Examples
 
@@ -408,6 +451,116 @@ data:  a
 data:  time
 data: ...
 ```
+
+### 9. Check Chatbot Rate Limit Usage
+
+```bash
+curl -X GET "http://localhost:8000/chatbot/usage" \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE"
+```
+
+**Response (200 OK):**
+```json
+{
+  "used": 3,
+  "remaining": 2,
+  "limit": 5,
+  "window_hours": 24,
+  "can_query": true
+}
+```
+
+**When Rate Limit Exceeded (429 Too Many Requests):**
+```json
+{
+  "detail": {
+    "message": "Rate limit exceeded. You have used 5 of 5 queries in the last 24 hours.",
+    "queries_used": 5,
+    "queries_limit": 5,
+    "window_hours": 24,
+    "queries_remaining": 0
+  }
+}
+```
+
+## Rate Limiting
+
+The chatbot endpoints implement a rate limiting mechanism to control API usage:
+
+### Configuration
+
+Rate limiting is configured via environment variables in `.env`:
+
+```env
+# Maximum number of queries per user
+CHATBOT_QUERY_LIMIT=5
+
+# Time window in hours
+CHATBOT_QUERY_WINDOW_HOURS=24
+```
+
+### How It Works
+
+- **Per-User Limiting**: Each authenticated user has their own quota
+- **24-Hour Window**: The limit is based on a sliding 24-hour window
+- **Unique Query Counting**: Queries are counted by unique `main_call_tid` values
+- **Automatic Tracking**: Uses existing `UsageLog` table - no additional database tables needed
+
+### Rate Limit Behavior
+
+**When Within Limit:**
+- Requests are processed normally
+- Response includes standard HTTP 200 status
+
+**When Limit Exceeded:**
+- Request returns HTTP 429 (Too Many Requests)
+- Includes detailed error message with usage information
+- Includes `X-RateLimit-*` headers for client handling
+
+### Checking Usage
+
+Use the `/chatbot/usage` endpoint to check current usage:
+
+```bash
+curl -X GET "http://localhost:8000/chatbot/usage" \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE"
+```
+
+Returns:
+```json
+{
+  "used": 3,
+  "remaining": 2,
+  "limit": 5,
+  "window_hours": 24,
+  "can_query": true
+}
+```
+
+### Customizing Limits
+
+To change rate limiting for different user types or scenarios:
+
+```env
+# Example: 10 queries per 12 hours
+CHATBOT_QUERY_LIMIT=10
+CHATBOT_QUERY_WINDOW_HOURS=12
+
+# Example: Unlimited (development)
+CHATBOT_QUERY_LIMIT=1000
+CHATBOT_QUERY_WINDOW_HOURS=24
+```
+
+### Implementation Details
+
+- **Service**: `check_chatbot_rate_limit()` in `src/services/usage_log_service.py`
+- **Dependency**: `verify_chatbot_rate_limit()` in `src/dependencies.py`
+- **Endpoints Protected**: `POST /chatbot`, `POST /chatbot/stream`
+- **Endpoint for Checking**: `GET /chatbot/usage`
+
+For more details, see `RATE_LIMITING_SETUP.md`.
+
+---
 
 ## Database Migrations
 
@@ -791,6 +944,9 @@ docker run -d -p 8000:8000 \
 | `SECRET_KEY` | JWT signing secret key | - | Yes |
 | `ALGORITHM` | JWT algorithm | `HS256` | No |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Token expiration time in minutes | `30` | No |
+| `BCRYPT_ROUNDS` | Bcrypt hashing rounds for passwords | `10` | No |
+| `CHATBOT_QUERY_LIMIT` | Max chatbot queries per user | `5` | No |
+| `CHATBOT_QUERY_WINDOW_HOURS` | Rate limit window in hours | `24` | No |
 | `OPENAI_API_KEY` | OpenAI API key for LangGraph agent | - | Yes (for chatbot) |
 | `LANGSMITH_TRACING` | Enable LangSmith tracing | `false` | No |
 | `LANGSMITH_API_KEY` | LangSmith API key for monitoring | - | No |
@@ -856,9 +1012,11 @@ alembic upgrade head
 ## Project Status
 
 This is a **production-ready template** that includes:
-- ✅ JWT authentication with secure password hashing
+- ✅ JWT authentication with secure password hashing (bcrypt)
 - ✅ LangGraph AI agents with state persistence
 - ✅ Streaming and non-streaming chatbot endpoints
+- ✅ Per-user rate limiting for chatbot endpoints (5 queries/24 hours)
+- ✅ Usage tracking and statistics
 - ✅ PostgreSQL checkpointing for conversation history
 - ✅ LangSmith integration for tracing and monitoring
 - ✅ Modular architecture following best practices
@@ -869,6 +1027,7 @@ This is a **production-ready template** that includes:
 - ✅ CORS configuration
 - ✅ Input validation with Pydantic
 - ✅ Role-based access control (staff, superuser)
+- ✅ Configurable rate limiting via environment variables
 
 ## Contributing
 
