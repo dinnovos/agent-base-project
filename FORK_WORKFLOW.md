@@ -769,6 +769,519 @@ git push origin main
 
 ---
 
+## 🤝 Contribuir al Proyecto Original (Pull Requests)
+
+Una de las ventajas principales de hacer fork es que puedes **contribuir mejoras al proyecto original** mediante Pull Requests (PRs).
+
+### Cuándo Hacer un PR
+
+Haz un PR cuando:
+- ✅ Encuentres y corrijas un bug
+- ✅ Agregues una feature útil para otros
+- ✅ Mejores la documentación
+- ✅ Optimices el código
+- ✅ Corrijas problemas de seguridad
+
+**NO hagas PR si:**
+- ❌ Es una customización específica para tu proyecto
+- ❌ Cambios que solo te benefician a ti
+- ❌ Código que no está bien probado
+
+### Paso 1: Crear una Rama para Tu Contribución
+
+```bash
+# Asegúrate de estar en main y actualizado
+git checkout main
+git pull origin main
+
+# Crea una rama descriptiva para tu cambio
+git checkout -b fix/bug-autenticacion
+# o
+git checkout -b feature/mejorar-rate-limiting
+# o
+git checkout -b docs/actualizar-readme
+```
+
+**Convención de nombres:**
+- `fix/` - Para correcciones de bugs
+- `feature/` - Para nuevas features
+- `docs/` - Para cambios de documentación
+- `perf/` - Para optimizaciones de rendimiento
+- `security/` - Para parches de seguridad
+
+### Paso 2: Hacer Tus Cambios
+
+```bash
+# 1. Edita los archivos necesarios
+# ... haz tus cambios ...
+
+# 2. Prueba localmente
+python run.py
+pytest
+
+# 3. Commitea tus cambios
+git add .
+git commit -m "fix: corrige bug de autenticación en chatbot
+
+- Describe el problema que corregiste
+- Explica cómo lo corregiste
+- Menciona si hay breaking changes"
+```
+
+**Buenas prácticas para commits:**
+- ✅ Commits pequeños y enfocados
+- ✅ Mensajes descriptivos
+- ✅ Referencia a issues si existen
+- ✅ Pruebas incluidas
+
+### Paso 3: Push a Tu Fork
+
+```bash
+# Push tu rama a tu fork
+git push origin fix/bug-autenticacion
+```
+
+### Paso 4: Crear el Pull Request en GitHub
+
+1. Ve a tu fork en GitHub: `https://github.com/TU_USUARIO/agent-base-project`
+2. Verás un banner amarillo que dice "Compare & pull request"
+3. Click en ese botón
+4. **O** ve a "Pull requests" → "New pull request"
+
+### Paso 5: Llenar la Información del PR
+
+**Título del PR:**
+```
+fix: corrige bug de autenticación en chatbot
+```
+
+**Descripción del PR:**
+```markdown
+## Descripción
+Corrige el bug donde los usuarios no podían autenticarse correctamente
+cuando usaban caracteres especiales en la contraseña.
+
+## Problema
+- Describe el problema que encontraste
+- Por qué es importante corregirlo
+- Qué impacto tiene
+
+## Solución
+- Explica cómo lo corregiste
+- Qué cambios hiciste
+- Por qué es la mejor solución
+
+## Cambios
+- [ ] Corrección de bug
+- [ ] Nueva feature
+- [ ] Cambio de documentación
+- [ ] Cambio de configuración
+
+## Testing
+- [ ] Probé localmente
+- [ ] Ejecuté los tests
+- [ ] Agregué tests nuevos
+- [ ] No hay breaking changes
+
+## Checklist
+- [x] Mi código sigue el estilo del proyecto
+- [x] He actualizado la documentación
+- [x] He agregado tests si es necesario
+- [x] Todos los tests pasan
+- [x] No hay conflictos con main
+
+## Screenshots (si aplica)
+Si es un cambio visual, agrega screenshots.
+
+## Issues Relacionados
+Cierra #123 (si hay un issue relacionado)
+```
+
+### Paso 6: Esperar Revisión
+
+El mantenedor del proyecto:
+- 👀 Revisará tu código
+- 💬 Puede pedir cambios
+- ✅ Aprobará y mergeará si todo está bien
+
+**Si piden cambios:**
+```bash
+# 1. Haz los cambios solicitados
+# ... edita archivos ...
+
+# 2. Commitea los cambios
+git add .
+git commit -m "review: responder comentarios de revisión"
+
+# 3. Push a la misma rama
+git push origin fix/bug-autenticacion
+
+# El PR se actualiza automáticamente
+```
+
+### Paso 7: ¡Tu PR fue Mergeado!
+
+```bash
+# 1. Vuelve a main
+git checkout main
+
+# 2. Actualiza desde upstream
+git fetch upstream
+git merge upstream/main
+
+# 3. Borra la rama local
+git branch -d fix/bug-autenticacion
+
+# 4. Borra la rama remota
+git push origin --delete fix/bug-autenticacion
+```
+
+---
+
+## 📋 Ejemplo Completo: Contribuir un Bug Fix
+
+### Situación
+Encontraste un bug en el rate limiting del chatbot y quieres contribuir la corrección.
+
+### Paso a Paso
+
+```bash
+# ===== PREPARACIÓN =====
+
+# 1. Asegúrate de tener todo actualizado
+git checkout main
+git pull origin main
+git fetch upstream
+git merge upstream/main
+
+# ===== CREAR RAMA =====
+
+# 2. Crea rama para el fix
+git checkout -b fix/rate-limit-off-by-one
+
+# ===== HACER CAMBIOS =====
+
+# 3. Edita el archivo con el bug
+code src/services/usage_log_service.py
+
+# 4. Haz los cambios necesarios
+# ... edita el código ...
+
+# ===== PROBAR =====
+
+# 5. Prueba localmente
+python run.py
+
+# 6. Ejecuta los tests
+pytest
+
+# 7. Crea un test para el bug (si no existe)
+# ... agrega test en tests/test_rate_limiting.py ...
+
+# ===== COMMIT =====
+
+# 8. Commitea los cambios
+git add src/services/usage_log_service.py tests/test_rate_limiting.py
+git commit -m "fix: corrige off-by-one error en rate limiting
+
+- El contador estaba contando un query de más
+- Ahora cuenta correctamente los últimos 24 horas
+- Agregado test para verificar el fix"
+
+# ===== PUSH =====
+
+# 9. Push a tu fork
+git push origin fix/rate-limit-off-by-one
+
+# ===== CREAR PR =====
+
+# 10. Ve a GitHub y crea el PR
+# https://github.com/TU_USUARIO/agent-base-project
+
+# 11. Llena la descripción:
+# Título: fix: corrige off-by-one error en rate limiting
+# Descripción: Explica el problema y la solución
+
+# ===== ESPERAR REVISIÓN =====
+
+# 12. El mantenedor revisa tu código
+# Si pide cambios:
+git add .
+git commit -m "review: responder comentarios"
+git push origin fix/rate-limit-off-by-one
+
+# ===== LIMPIAR =====
+
+# 13. Cuando tu PR es mergeado:
+git checkout main
+git pull origin main
+git branch -d fix/rate-limit-off-by-one
+git push origin --delete fix/rate-limit-off-by-one
+```
+
+---
+
+## 🎯 Guía de Estilo para PRs
+
+### Commits
+
+```bash
+# ✅ BIEN
+git commit -m "feat: agregar autenticación OAuth
+
+- Implementa login con Google
+- Implementa login con GitHub
+- Agrega tests para ambos providers"
+
+# ❌ MAL
+git commit -m "cambios"
+git commit -m "fix stuff"
+git commit -m "actualizar archivos"
+```
+
+### Código
+
+```python
+# ✅ BIEN - Código limpio y documentado
+def check_rate_limit(user_id: int) -> RateLimitInfo:
+    """
+    Verifica si el usuario ha excedido el límite de rate.
+    
+    Args:
+        user_id: ID del usuario
+        
+    Returns:
+        RateLimitInfo con estado actual
+        
+    Raises:
+        RateLimitExceeded: Si se excedió el límite
+    """
+    # Implementación...
+
+# ❌ MAL - Código sin documentación
+def check_rate_limit(user_id):
+    # check limit
+    pass
+```
+
+### Tests
+
+```python
+# ✅ BIEN - Tests descriptivos
+def test_rate_limit_blocks_after_5_queries():
+    """Verifica que el rate limit bloquea después de 5 queries."""
+    user = create_test_user()
+    
+    # Hacer 5 queries
+    for i in range(5):
+        make_query(user)
+    
+    # El 6to query debe fallar
+    with pytest.raises(RateLimitExceeded):
+        make_query(user)
+
+# ❌ MAL - Tests sin descripción
+def test_rate_limit():
+    user = create_test_user()
+    for i in range(5):
+        make_query(user)
+    with pytest.raises(RateLimitExceeded):
+        make_query(user)
+```
+
+---
+
+## 🚫 Cosas a Evitar en PRs
+
+### ❌ NO hagas esto
+
+1. **Cambios no relacionados**
+   ```bash
+   # ❌ MAL: Mezclar bug fix con refactoring
+   git commit -m "fix: bug de auth + refactorizar todo el código"
+   
+   # ✅ BIEN: Cambios separados
+   git commit -m "fix: bug de auth"
+   # (en otro PR)
+   git commit -m "refactor: mejorar estructura del código"
+   ```
+
+2. **Commits sin descripción**
+   ```bash
+   # ❌ MAL
+   git commit -m "fix"
+   
+   # ✅ BIEN
+   git commit -m "fix: corrige bug de autenticación en login"
+   ```
+
+3. **Cambios de estilo de código**
+   ```bash
+   # ❌ MAL: Cambiar indentación de todo el archivo
+   # ✅ BIEN: Solo cambios necesarios
+   ```
+
+4. **Dependencias no necesarias**
+   ```bash
+   # ❌ MAL: Agregar nuevas dependencias sin justificar
+   # ✅ BIEN: Justificar por qué se necesita
+   ```
+
+5. **Código sin tests**
+   ```bash
+   # ❌ MAL: Cambios sin tests
+   # ✅ BIEN: Cambios con tests que verifican el fix
+   ```
+
+---
+
+## 💬 Comunicación en PRs
+
+### Responder a Comentarios
+
+**Cuando el revisor pide cambios:**
+
+```bash
+# 1. Lee el comentario cuidadosamente
+# 2. Haz los cambios solicitados
+# 3. Commitea con un mensaje claro
+git commit -m "review: responder comentario sobre validación de input"
+
+# 4. Push
+git push origin tu-rama
+
+# 5. Responde en el comentario del PR
+# "Hecho ✅ - He agregado validación adicional como sugeriste"
+```
+
+**Ser profesional y respetuoso:**
+- ✅ Agradece la revisión
+- ✅ Explica tu razonamiento si no estás de acuerdo
+- ✅ Sé abierto a sugerencias
+- ✅ Mantén un tono positivo
+
+---
+
+## 📊 Ciclo de Vida de un PR
+
+```
+1. Crear rama
+   ↓
+2. Hacer cambios
+   ↓
+3. Probar localmente
+   ↓
+4. Push a fork
+   ↓
+5. Crear PR en GitHub
+   ↓
+6. Revisor revisa código
+   ↓
+7. ¿Cambios necesarios?
+   ├─ SÍ → Hacer cambios → Volver a paso 6
+   └─ NO → Revisor aprueba
+   ↓
+8. Revisor mergea PR
+   ↓
+9. Actualizar tu fork
+   ↓
+10. Limpiar rama local
+```
+
+---
+
+## ✅ Checklist Antes de Hacer PR
+
+- [ ] Mi rama está basada en la última versión de upstream/main
+- [ ] He probado mi código localmente
+- [ ] Todos los tests pasan
+- [ ] He agregado tests para mi cambio
+- [ ] Mi código sigue el estilo del proyecto
+- [ ] He actualizado la documentación si es necesario
+- [ ] Mi commit tiene un mensaje descriptivo
+- [ ] No hay conflictos con main
+- [ ] Mi PR tiene una descripción clara
+- [ ] He referenciado issues relacionados
+- [ ] He revisado mi propio código antes de enviar
+
+---
+
+## 🎓 Ejemplo Real: PR Completo
+
+### Situación
+Encontraste que la documentación de rate limiting tiene un error.
+
+### Solución Completa
+
+```bash
+# 1. Actualizar desde upstream
+git checkout main
+git fetch upstream
+git merge upstream/main
+
+# 2. Crear rama
+git checkout -b docs/fix-rate-limit-docs
+
+# 3. Editar archivo
+# Abres README.md y corriges el error
+
+# 4. Probar (leer la documentación)
+# Verificas que la documentación ahora es correcta
+
+# 5. Commit
+git add README.md
+git commit -m "docs: corrige error en documentación de rate limiting
+
+- El límite era 10/minuto, no 5/24h
+- Actualizado con valores correctos
+- Agregado ejemplo de uso"
+
+# 6. Push
+git push origin docs/fix-rate-limit-docs
+
+# 7. Crear PR en GitHub
+# Título: docs: corrige error en documentación de rate limiting
+# Descripción:
+# ## Problema
+# La documentación tenía valores incorrectos del rate limit.
+# 
+# ## Solución
+# Actualicé los valores con los correctos (5 queries/24h).
+# 
+# ## Testing
+# - [x] Leí la documentación actualizada
+# - [x] Verificué que es correcta
+
+# 8. Esperar revisión
+# El mantenedor revisa y aprueba
+
+# 9. Limpiar
+git checkout main
+git pull origin main
+git branch -d docs/fix-rate-limit-docs
+git push origin --delete docs/fix-rate-limit-docs
+```
+
+---
+
+## 🎉 ¡Contribuyendo al Proyecto!
+
+Ahora sabes cómo:
+- ✅ Hacer fork del proyecto
+- ✅ Mantener tu fork actualizado
+- ✅ Crear Pull Requests
+- ✅ Responder a revisiones
+- ✅ Contribuir mejoras al proyecto original
+
+**Beneficios de contribuir:**
+- 🌟 Tu código ayuda a otros
+- 📚 Mejoras tu experiencia con Git
+- 🤝 Te conectas con la comunidad
+- 🏆 Tu nombre aparece en el historial del proyecto
+- 💡 Recibes feedback de otros desarrolladores
+
+---
+
 ## 📚 Recursos Adicionales
 
 - **Git Documentation**: https://git-scm.com/doc
