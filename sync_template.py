@@ -88,77 +88,89 @@ def replace_hardcoded_values(template_base: Path) -> int:
 
 
 def sync_template():
-    """Sync changes from main project to template."""
+    """Sync changes from main project to templates."""
     
     # Define the base paths
     project_root = Path(__file__).parent
-    template_base = project_root / "cookiecutter-template" / "{{cookiecutter.project_slug}}"
+    template_bases = [
+        project_root / "cookiecutter-template" / "{{cookiecutter.project_slug}}",
+        project_root / "dinnovos_cli" / "cookiecutter-template" / "{{cookiecutter.project_slug}}"
+    ]
     
     # Folders to sync
     folders_to_sync = [
-        ("src", template_base / "src"),
-        ("agents", template_base / "agents"),
-        ("tests", template_base / "tests"),
-        ("alembic", template_base / "alembic"),
+        "src",
+        "agents",
+        "tests",
+        "alembic",
     ]
     
-    # Files to sync (source, destination)
+    # Files to sync
     files_to_sync = [
-        ("requirements.txt", template_base / "requirements.txt"),
-        (".env.example", template_base / ".env.example"),
-        ("pytest.ini", template_base / "pytest.ini"),
-        ("langgraph.json", template_base / "langgraph.json"),
-        ("Dockerfile", template_base / "Dockerfile"),
-        ("docker-compose.yml", template_base / "docker-compose.yml"),
-        (".dockerignore", template_base / ".dockerignore"),
-        ("alembic.ini", template_base / "alembic.ini"),
+        "requirements.txt",
+        ".env.example",
+        "pytest.ini",
+        "langgraph.json",
+        "Dockerfile",
+        "docker-compose.yml",
+        ".dockerignore",
+        "alembic.ini",
     ]
     
     print("Starting template sync...")
     print("=" * 60)
     
-    # Sync folders
-    for src_folder, dst_folder in folders_to_sync:
-        src_path = project_root / src_folder
+    # Sync each template
+    for idx, template_base in enumerate(template_bases, 1):
+        print(f"\n{'='*60}")
+        print(f"SYNCING TEMPLATE {idx}/{len(template_bases)}: {template_base.relative_to(project_root)}")
+        print(f"{'='*60}\n")
         
-        if src_path.exists():
-            print(f"Syncing folder: {src_folder}")
+        # Sync folders
+        for src_folder in folders_to_sync:
+            src_path = project_root / src_folder
+            dst_folder = template_base / src_folder
             
-            # Remove destination if it exists
-            if dst_folder.exists():
-                shutil.rmtree(dst_folder)
-            
-            # Copy folder
-            shutil.copytree(src_path, dst_folder)
-            print(f"  ✓ {src_folder} synced successfully")
-        else:
-            print(f"  ✗ {src_folder} not found (skipped)")
-    
-    print()
-    
-    # Sync files
-    for src_file, dst_file in files_to_sync:
-        src_path = project_root / src_file
+            if src_path.exists():
+                print(f"Syncing folder: {src_folder}")
+                
+                # Remove destination if it exists
+                if dst_folder.exists():
+                    shutil.rmtree(dst_folder)
+                
+                # Copy folder
+                shutil.copytree(src_path, dst_folder)
+                print(f"  ✓ {src_folder} synced successfully")
+            else:
+                print(f"  ✗ {src_folder} not found (skipped)")
         
-        if src_path.exists():
-            print(f"Syncing file: {src_file}")
-            shutil.copy2(src_path, dst_file)
-            print(f"  ✓ {src_file} synced successfully")
-        else:
-            print(f"  ✗ {src_file} not found (skipped)")
-    
-    print()
-    
-    # Replace hardcoded values
-    total_replacements = replace_hardcoded_values(template_base)
+        print()
+        
+        # Sync files
+        for src_file in files_to_sync:
+            src_path = project_root / src_file
+            dst_file = template_base / src_file
+            
+            if src_path.exists():
+                print(f"Syncing file: {src_file}")
+                shutil.copy2(src_path, dst_file)
+                print(f"  ✓ {src_file} synced successfully")
+            else:
+                print(f"  ✗ {src_file} not found (skipped)")
+        
+        print()
+        
+        # Replace hardcoded values
+        total_replacements = replace_hardcoded_values(template_base)
+        print(f"  ✓ Made {total_replacements} replacements in this template")
     
     print()
     print("=" * 60)
-    print("✓ Template sync completed!")
-    print(f"✓ Total replacements made: {total_replacements}")
+    print("✓ ALL TEMPLATES SYNCED SUCCESSFULLY!")
+    print(f"✓ Synced {len(template_bases)} template(s)")
     print()
     print("Next steps:")
-    print("  1. Review changes in cookiecutter-template/")
+    print("  1. Review changes in both template directories")
     print("  2. Test the template: cd cookiecutter-template && cookiecutter .")
     print("  3. Verify the generated project has correct values")
     print("  4. Commit changes: git add . && git commit -m 'chore: sync template and replace hardcoded values'")

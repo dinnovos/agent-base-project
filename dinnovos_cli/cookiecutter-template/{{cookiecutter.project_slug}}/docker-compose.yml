@@ -1,31 +1,41 @@
 version: '3.8'
 
 services:
-  app:
-    build: .
-    ports:
-      - "{{cookiecutter.port}}:{{cookiecutter.port}}"
-    environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/{{cookiecutter.project_slug}}
-      - SECRET_KEY=your-secret-key
-      - ALGORITHM=HS256
-      - ACCESS_TOKEN_EXPIRE_MINUTES=30
-      - BCRYPT_ROUNDS=10
-    depends_on:
-      - db
-    volumes:
-      - .:/app
-
+  # PostgreSQL Database
   db:
-    image: postgres:15
+    image: postgres:15-alpine
+    container_name: fastapi_db
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB={{cookiecutter.project_slug}}
+      POSTGRES_USER: fastapi_user
+      POSTGRES_PASSWORD: fastapi_password
+      POSTGRES_DB: fastapi_db
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fastapi_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Application
+  app:
+    build: .
+    container_name: fastapi_app
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://fastapi_user:fastapi_password@db:5432/fastapi_db
+      SECRET_KEY: your-secret-key-change-in-production
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
   postgres_data:

@@ -1,61 +1,67 @@
-"""Security utilities for authentication and password hashing."""
-
 from datetime import datetime, timedelta
-from typing import Optional
+from jose import jwt
+import bcrypt
 import logging
-
-from jose import JWTError, jwt
-from passlib.context import CryptContext
-from pydantic import BaseModel
-
 from src.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Password hashing
-pwd_context = CryptContext(
-    schemes=["bcrypt"],
-    deprecated="auto",
-    bcrypt__rounds=settings.BCRYPT_ROUNDS
-)
+# Bcrypt rounds: 12 is default (secure but slow), 10 is faster for development
+# In production, use 12-14 rounds. In development, 10 is acceptable.
+BCRYPT_ROUNDS = settings.BCRYPT_ROUNDS
 
 
-class TokenData(BaseModel):
-    user_id: Optional[int] = None
+def hash_password(password: str) -> str:
+    """
+    Hash a password using bcrypt.
+    
+    Args:
+        password: Plain text password
+        
+    Returns:
+        str: Hashed password
+        
+    Note:
+        Uses BCRYPT_ROUNDS for salt generation.
+        Lower rounds = faster but less secure.
+        Recommended: 10 for dev, 12-14 for production.
+    """
+    logger.debug(f"Hashing password with {BCRYPT_ROUNDS} rounds")
+    password_bytes = password.encode('utf-8')
+    salt = bcrypt.gensalt(rounds=BCRYPT_ROUNDS)
+    hashed = bcrypt.hashpw(password_bytes, salt)
+    logger.debug("Password hashed successfully")
+    return hashed.decode('utf-8')
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a plain password against a hashed password."""
-    return pwd_context.verify(plain_password, hashed_password)
+    """
+    Verify a password against a hashed password.
+    
+    Args:
+        plain_password: Plain text password to verify
+        hashed_password: Hashed password to compare against
+        
+    Returns:
+        bool: True if password matches, False otherwise
+        
+    Note:
+        This operation is intentionally slow (bcrypt design).
+        Typical time: 100-300ms depending on rounds used.
+    """
+    logger.debug("Verifying password")
+    password_bytes = plain_password.encode('utf-8')
+    hashed_bytes = hashed_password.encode('utf-8')
+    result = bcrypt.checkpw(password_bytes, hashed_bytes)
+    logger.debug(f"Password verification result: {result}")
+    return result
 
 
-def get_password_hash(password: str) -> str:
-    """Hash a password."""
-    return pwd_context.hash(password)
-
-
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(data: dict) -> str:
     """Create a JWT access token."""
     to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    
-    to_encode.update({"exp": expire})
+    expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    # Convert datetime to Unix timestamp (seconds since epoch)
+    to_encode.update({"exp": int(expire.timestamp())})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
-
-
-def decode_token(token: str) -> Optional[TokenData]:
-    """Decode a JWT token."""
-    try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        user_id: int = payload.get("sub")
-        if user_id is None:
-            return None
-        token_data = TokenData(user_id=user_id)
-    except JWTError:
-        logger.warning(f"Invalid token: {token}")
-        return None
-    return token_data
