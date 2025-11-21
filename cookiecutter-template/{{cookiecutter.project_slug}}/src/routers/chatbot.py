@@ -8,12 +8,13 @@ from src.db.session import get_db
 from src.models.user import User
 from src.schemas.profile import ProfileRead, ProfileUpdate
 from src.services.profile_service import get_profile_by_user_id, update_profile
-from src.dependencies import get_current_user
+from src.dependencies import get_current_user, verify_chatbot_rate_limit
 from src.db.checkpoint import lifespan, CheckpointerDep
 from src.db.database import SessionLocal
 
-from src.services.usage_log_service import create_usage_log
+from src.services.usage_log_service import create_usage_log, check_chatbot_rate_limit
 from src.schemas.usage_log import UsageLogCreate
+from src.core.config import settings
 
 from agents.basic.agent import make_graph
 from langchain_core.messages import HumanMessage
@@ -36,8 +37,14 @@ class Message(BaseModel):
 
 @router.post("/")
 @limiter.limit("10/minute")
-async def chat(request: Request, item: Message, checkpointer: CheckpointerDep, current_user: User = Depends(get_current_user)):
-
+async def chat(
+    request: Request, 
+    item: Message, 
+    checkpointer: CheckpointerDep, 
+    current_user: User = Depends(verify_chatbot_rate_limit)
+):
+    """Endpoint de chat con rate limiting de 5 consultas cada 24 horas por usuario."""
+    
     user_id = current_user.id
     agent = make_graph(config={"checkpointer": checkpointer})
 
@@ -64,8 +71,14 @@ async def chat(request: Request, item: Message, checkpointer: CheckpointerDep, c
 
 @router.post("/stream")
 @limiter.limit("10/minute")
-async def stream_chat(request: Request, item: Message, checkpointer: CheckpointerDep, current_user: User = Depends(get_current_user)):
-
+async def stream_chat(
+    request: Request, 
+    item: Message, 
+    checkpointer: CheckpointerDep, 
+    current_user: User = Depends(verify_chatbot_rate_limit)
+):
+    """Endpoint de chat streaming con rate limiting de 5 consultas cada 24 horas por usuario."""
+    
     user_id = current_user.id
     
     config = {
@@ -86,3 +99,28 @@ async def stream_chat(request: Request, item: Message, checkpointer: Checkpointe
                 yield f"data: {message_chunk.content}\n\n"
 
     return StreamingResponse(generate_response(), media_type="text/event-stream")
+
+
+@router.get("/usage")
+async def get_usage(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Obtiene el uso actual de consultas del usuario al chatbot.
+    
+    Retorna:
+    - used: Número de consultas realizadas en las últimas 24 horas
+    - remaining: Número de consultas restantes
+    - limit: Límite total de consultas por ventana de tiempo
+    - window_hours: Ventana de tiempo en horas
+    """
+    can_query, used, remaining = check_chatbot_rate_limit(db, current_user.id)
+    
+    return {
+        "used": used,
+        "remaining": remaining,
+        "limit": settings.CHATBOT_QUERY_LIMIT,
+        "window_hours": settings.CHATBOT_QUERY_WINDOW_HOURS,
+        "can_query": can_query
+    }
