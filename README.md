@@ -78,30 +78,6 @@ agent-base-project/
 └── README.md               # This file
 ```
 
-## Quick Start with dinnovos-create-agent
-
-The easiest way to create a new project based on this template is using the `dinnovos-create-agent` CLI command:
-
-```bash
-# Install the dinnovos CLI (if not already installed)
-pip install dinnovos-agent-cli
-
-# Create a new agent project
-dinnovos-create-agent my-agent-project
-
-# Navigate to the project
-cd my-agent-project
-
-# Follow the setup instructions below
-```
-
-This command will:
-- Create a new project directory with the template structure
-- Copy all necessary files and configurations
-- Set up the project structure for your custom agent
-
----
-
 ## Setup Instructions
 
 Follow these steps to set up and run the project:

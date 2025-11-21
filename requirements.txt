@@ -33,6 +33,3 @@ langgraph-cli==0.4.7
 langchain-openai==1.0.3
 
 langgraph-checkpoint-postgres==3.0.1
-
-# CLI and templating
-cookiecutter>=2.1.0

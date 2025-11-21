@@ -1,9 +1,0 @@
-{
-  "project_name": "My Agent Project",
-  "project_slug": "{{ cookiecutter.project_name.lower().replace(' ', '_').replace('-', '_') }}",
-  "description": "An AI agent project based on LangGraph and FastAPI",
-  "port": "8000",
-  "author_name": "Your Name",
-  "author_email": "your.email@example.com",
-  "python_version": "3.11"
-}
