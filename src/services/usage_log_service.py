@@ -1,9 +1,11 @@
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 from src.models.usage_log import UsageLog
 from src.schemas.usage_log import UsageLogCreate, UsageLogUpdate
+from src.core.config import settings
+from src.core.logging import logger
 
 
 def create_usage_log(db: Session, user_id: int, usage_data: UsageLogCreate) -> UsageLog:
@@ -243,3 +245,37 @@ def delete_old_usage_logs(db: Session, days: int = 90) -> int:
     count = db.query(UsageLog).filter(UsageLog.created_at < cutoff_date).delete()
     db.commit()
     return count
+
+
+def check_chatbot_rate_limit(db: Session, user_id: int) -> Tuple[bool, int, int]:
+    """
+    Verifica si el usuario ha excedido el límite de consultas al chatbot.
+    Cuenta consultas únicas por main_call_tid en las últimas 24 horas.
+    
+    Args:
+        db: Database session
+        user_id: ID del usuario
+        
+    Returns:
+        Tuple[bool, int, int]: (puede_consultar, consultas_usadas, consultas_restantes)
+    """
+    # Calcular la ventana de tiempo
+    window_start = datetime.utcnow() - timedelta(hours=settings.CHATBOT_QUERY_WINDOW_HOURS)
+    
+    # Contar main_call_tid únicos (cada consulta al chatbot genera un main_call_tid único)
+    query_count = db.query(func.count(func.distinct(UsageLog.main_call_tid))).filter(
+        UsageLog.user_id == user_id,
+        UsageLog.created_at >= window_start
+    ).scalar()
+    
+    queries_used = query_count or 0
+    queries_remaining = max(0, settings.CHATBOT_QUERY_LIMIT - queries_used)
+    can_query = queries_used < settings.CHATBOT_QUERY_LIMIT
+    
+    logger.info(
+        f"Chatbot rate limit check for user {user_id}: "
+        f"used={queries_used}/{settings.CHATBOT_QUERY_LIMIT}, "
+        f"remaining={queries_remaining}, can_query={can_query}"
+    )
+    
+    return can_query, queries_used, queries_remaining

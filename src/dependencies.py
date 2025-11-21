@@ -6,6 +6,7 @@ from src.core.config import settings
 from src.db.session import get_db
 from src.models.user import User
 from src.services.user_service import get_user_by_email
+from src.services.usage_log_service import check_chatbot_rate_limit
 from src.schemas.token import TokenData
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
@@ -86,4 +87,34 @@ def get_current_superuser(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not enough permissions"
         )
+    return current_user
+
+
+def verify_chatbot_rate_limit(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> User:
+    """
+    Dependency to check if user has exceeded chatbot query rate limit.
+    Uses existing UsageLog records to count queries by main_call_tid.
+    Raises HTTPException if limit is exceeded.
+    Returns the current user if within limits.
+    """
+    can_query, queries_used, queries_remaining = check_chatbot_rate_limit(db, current_user.id)
+    
+    if not can_query:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail={
+                "message": f"Rate limit exceeded. You have used {queries_used} of {settings.CHATBOT_QUERY_LIMIT} queries in the last {settings.CHATBOT_QUERY_WINDOW_HOURS} hours.",
+                "queries_used": queries_used,
+                "queries_limit": settings.CHATBOT_QUERY_LIMIT,
+                "window_hours": settings.CHATBOT_QUERY_WINDOW_HOURS,
+                "queries_remaining": 0
+            },
+            headers={"X-RateLimit-Limit": str(settings.CHATBOT_QUERY_LIMIT),
+                     "X-RateLimit-Remaining": "0",
+                     "X-RateLimit-Reset": str(settings.CHATBOT_QUERY_WINDOW_HOURS)}
+        )
+    
     return current_user

@@ -8,7 +8,7 @@ from src.db.session import get_db
 from src.models.user import User
 from src.schemas.profile import ProfileRead, ProfileUpdate
 from src.services.profile_service import get_profile_by_user_id, update_profile
-from src.dependencies import get_current_user
+from src.dependencies import get_current_user, verify_chatbot_rate_limit
 from src.db.checkpoint import lifespan, CheckpointerDep
 from src.db.database import SessionLocal
 
@@ -36,8 +36,14 @@ class Message(BaseModel):
 
 @router.post("/")
 @limiter.limit("10/minute")
-async def chat(request: Request, item: Message, checkpointer: CheckpointerDep, current_user: User = Depends(get_current_user)):
-
+async def chat(
+    request: Request, 
+    item: Message, 
+    checkpointer: CheckpointerDep, 
+    current_user: User = Depends(verify_chatbot_rate_limit)
+):
+    """Endpoint de chat con rate limiting de 5 consultas cada 24 horas por usuario."""
+    
     user_id = current_user.id
     agent = make_graph(config={"checkpointer": checkpointer})
 
@@ -64,8 +70,14 @@ async def chat(request: Request, item: Message, checkpointer: CheckpointerDep, c
 
 @router.post("/stream")
 @limiter.limit("10/minute")
-async def stream_chat(request: Request, item: Message, checkpointer: CheckpointerDep, current_user: User = Depends(get_current_user)):
-
+async def stream_chat(
+    request: Request, 
+    item: Message, 
+    checkpointer: CheckpointerDep, 
+    current_user: User = Depends(verify_chatbot_rate_limit)
+):
+    """Endpoint de chat streaming con rate limiting de 5 consultas cada 24 horas por usuario."""
+    
     user_id = current_user.id
     
     config = {
