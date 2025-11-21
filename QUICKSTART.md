@@ -15,51 +15,61 @@ This guide walks you through the complete process of setting up the project and 
 
 ## Initial Setup
 
-### Step 1: Create Virtual Environment
+### Step 1: Install uv
 
-Open your terminal in the project root directory and create a virtual environment:
+First, install `uv` if you haven't already:
 
 **Windows:**
 ```bash
-python -m venv venv
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
 **Linux/Mac:**
 ```bash
-python3 -m venv venv
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-### Step 2: Activate Virtual Environment
-
-**Windows (PowerShell):**
-```bash
-venv\Scripts\activate
-```
-
-**Windows (CMD):**
-```bash
-venv\Scripts\activate.bat
-```
-
-**Linux/Mac:**
-```bash
-source venv/bin/activate
-```
-
-You should see `(venv)` at the beginning of your terminal prompt.
-
-### Step 3: Install Dependencies
+### Step 2: Create Virtual Environment and Install Dependencies
 
 ```bash
-pip install -r requirements.txt
+# Create virtual environment and install dependencies in one command
+uv sync
 ```
 
-This installs all required packages including:
+This will:
+- Create a `.venv` virtual environment automatically
+- Install all dependencies from `pyproject.toml`
+- Be much faster than traditional pip
+
+**Alternative:** If you prefer using `requirements.txt`:
+```bash
+# Create virtual environment
+uv venv
+
+# Activate it (Windows PowerShell)
+.venv\Scripts\activate
+
+# Activate it (Windows CMD)
+.venv\Scripts\activate.bat
+
+# Activate it (Linux/Mac)
+source .venv/bin/activate
+
+# Install dependencies
+uv pip install -r requirements.txt
+```
+
+You should see `(.venv)` at the beginning of your terminal prompt.
+
+### Step 3: Verify Installation
+
+All required packages are now installed, including:
 - FastAPI
 - SQLAlchemy
 - Alembic
 - Uvicorn
 - Pydantic
+- LangGraph and LangChain
 - And more...
 
 ### Step 4: Configure Environment Variables
@@ -105,20 +115,43 @@ alembic upgrade head
 
 ### Step 6: Run the Application
 
-Start the development server:
+#### Windows (Development)
+
+**⚠️ Important**: Due to psycopg async driver requirements on Windows, use one of these methods:
+
+**Option 1 - Using run.py (Recommended):**
 ```bash
 python run.py
 ```
 
-Or using uvicorn directly:
+**Option 2 - Using uvicorn with loop parameter:**
 ```bash
+uvicorn src.main:app --reload --loop asyncio
+```
+
+#### Linux/macOS (Development)
+
+```bash
+# Using run.py
+python run.py
+
+# Or using uvicorn directly
 uvicorn src.main:app --reload
+```
+
+#### Production (Railway/Docker)
+
+No special configuration needed - works out of the box:
+```bash
+uvicorn src.main:app --host 0.0.0.0 --port 8000
 ```
 
 The API will be available at:
 - **API**: http://localhost:8000
 - **Swagger Docs**: http://localhost:8000/docs
 - **ReDoc**: http://localhost:8000/redoc
+
+> **Note**: The Windows-specific configuration is only needed for local development. Railway and Docker use Linux containers and work without any special setup.
 
 ---
 
@@ -738,7 +771,12 @@ To create additional models, follow the same pattern:
 ### Issue: "Module not found" errors
 **Solution:** Ensure virtual environment is activated and dependencies are installed:
 ```bash
-pip install -r requirements.txt
+uv sync
+```
+
+Or if using requirements.txt:
+```bash
+uv pip install -r requirements.txt
 ```
 
 ### Issue: Database migration fails

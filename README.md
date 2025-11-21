@@ -74,7 +74,8 @@ agent-base-project/
 ├── tests/                   # Test suite
 ├── .env.example             # Environment variables template
 ├── langgraph.json           # LangGraph configuration
-├── requirements.txt         # Python dependencies
+├── pyproject.toml           # Project configuration and dependencies (uv)
+├── requirements.txt         # Python dependencies (alternative to pyproject.toml)
 └── README.md               # This file
 ```
 
@@ -82,29 +83,57 @@ agent-base-project/
 
 Follow these steps to set up and run the project:
 
-### Step 1: Create Virtual Environment
+### Step 1: Install uv
 
-```bash
-# Create virtual environment
-python -m venv venv
-```
-
-### Step 2: Activate Virtual Environment
+First, install `uv` if you haven't already:
 
 **On Windows:**
 ```bash
-venv\Scripts\activate
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
 **On Linux/Mac:**
 ```bash
-source venv/bin/activate
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-### Step 3: Install Dependencies
+### Step 2: Create Virtual Environment and Install Dependencies
 
 ```bash
-pip install -r requirements.txt
+# Create virtual environment and install dependencies in one command
+uv sync
+```
+
+This will:
+- Create a `.venv` virtual environment automatically
+- Install all dependencies from `pyproject.toml`
+- Be much faster than traditional pip
+
+**Alternative:** If you prefer using `requirements.txt`:
+```bash
+# Create virtual environment
+uv venv
+
+# Activate it (Windows)
+.venv\Scripts\activate
+
+# Activate it (Linux/Mac)
+source .venv/bin/activate
+
+# Install dependencies
+uv pip install -r requirements.txt
+```
+
+### Step 3: Activate Virtual Environment (if not using uv sync)
+
+**On Windows:**
+```bash
+.venv\Scripts\activate
+```
+
+**On Linux/Mac:**
+```bash
+source .venv/bin/activate
 ```
 
 ### Step 4: Configure Environment Variables
@@ -172,24 +201,63 @@ alembic upgrade head
 
 ### Step 6: Run the Application
 
-**Option 1: Using the run script**
+#### Development (Windows)
+
+**⚠️ Important for Windows Users**: Due to psycopg async driver requirements, you must use one of these methods:
+
+**Option 1: Using the run script (Recommended)**
 ```bash
 python run.py
 ```
 
-**Option 2: Using uvicorn directly**
+**Option 2: Using uvicorn with loop parameter**
 ```bash
-# Development mode with auto-reload
-uvicorn src.main:app --reload
+uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload --loop asyncio
+```
 
-# Production mode
+#### Development (Linux/macOS)
+
+```bash
+# Using the run script
+python run.py
+
+# Or using uvicorn directly
+uvicorn src.main:app --reload
+```
+
+#### Production
+
+**Railway/Docker (Linux containers)**
+```bash
+# No special configuration needed - works out of the box
 uvicorn src.main:app --host 0.0.0.0 --port 8000
+```
+
+**Windows Server**
+```bash
+# Use the --loop parameter
+uvicorn src.main:app --host 0.0.0.0 --port 8000 --loop asyncio
+```
+
+**Linux/macOS Server**
+```bash
+# Standard command
+uvicorn src.main:app --host 0.0.0.0 --port 8000
+
+# Or with Gunicorn for better performance
+gunicorn src.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
 ```
 
 The API will be available at:
 - **URL**: http://localhost:8000
 - **Swagger Documentation**: http://localhost:8000/docs
 - **ReDoc Documentation**: http://localhost:8000/redoc
+
+#### Why the difference?
+
+- **Windows**: Uses `ProactorEventLoop` by default, but psycopg (async PostgreSQL driver) requires `SelectorEventLoop`
+- **Linux/macOS**: Uses `SelectorEventLoop` by default, so no special configuration needed
+- **Docker/Railway**: Runs Linux containers, so no special configuration needed
 
 ---
 
@@ -588,7 +656,7 @@ LangGraph Studio provides a visual interface for testing and debugging your agen
 
 1. **Install LangGraph CLI** (if not already installed):
    ```bash
-   pip install langgraph-cli
+   uv pip install langgraph-cli
    ```
 
 2. **Configure LangSmith** (optional but recommended for tracing):
@@ -943,8 +1011,13 @@ python -c "import secrets; print(secrets.token_hex(32))"
 ### "Module not found" errors
 Make sure you're in the virtual environment and have installed all dependencies:
 ```bash
-source venv/bin/activate  # or venv\Scripts\activate on Windows
-pip install -r requirements.txt
+source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+uv pip install -r requirements.txt
+```
+
+Or simply run:
+```bash
+uv sync
 ```
 
 ### Database connection errors
@@ -977,13 +1050,37 @@ alembic upgrade head
 - Verify the database is accessible
 
 **"langgraph dev" command not found**
-- Install LangGraph CLI: `pip install langgraph-cli`
+- Install LangGraph CLI: `uv pip install langgraph-cli`
 - Ensure you're in the virtual environment
 
 **Agent not responding or timing out**
 - Check your OpenAI API key has sufficient credits
 - Verify internet connection for API calls
 - Check LangSmith dashboard for error traces (if enabled)
+
+### Windows-specific errors
+
+**"Psycopg cannot use the 'ProactorEventLoop' to run in async mode"**
+
+This error occurs on Windows when using uvicorn directly without the correct event loop configuration.
+
+**Solution 1 (Recommended):**
+```bash
+python run.py
+```
+
+**Solution 2:**
+```bash
+uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload --loop asyncio
+```
+
+**Why this happens:**
+- Windows uses `ProactorEventLoop` by default (Python 3.8+)
+- The async PostgreSQL driver (psycopg) requires `SelectorEventLoop`
+- The `run.py` script automatically configures the correct event loop
+- Linux/macOS don't have this issue as they use `SelectorEventLoop` by default
+
+**Note:** This only affects local development on Windows. Railway and Docker deployments use Linux containers and work without any special configuration.
 
 ## Project Status
 

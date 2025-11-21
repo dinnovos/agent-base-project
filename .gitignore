@@ -90,5 +90,6 @@ dist/
 *.egg-info/
 *.egg
 
-# Keep cookiecutter-template (needed for distribution)
-!cookiecutter-template/
+# uv
+.python-version
+uv.lock

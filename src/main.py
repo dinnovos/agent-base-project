@@ -1,3 +1,5 @@
+import asyncio
+import sys
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
@@ -9,6 +11,10 @@ from src.models.base import Base
 from src.models import user, profile  # Import models to ensure they're registered
 from src.core.logging import setup_logging
 from src.db.checkpoint import lifespan
+
+# Fix for Windows: psycopg requires SelectorEventLoop instead of ProactorEventLoop
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 setup_logging()
 # Create database tables

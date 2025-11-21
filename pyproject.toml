@@ -1,0 +1,70 @@
+[project]
+name = "agent-base-project"
+version = "1.0.0"
+description = "A modular FastAPI project with JWT authentication, SQLAlchemy ORM, and LangGraph AI agents"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    { name = "Dinnovos", email = "info.dinnovos@gmail.com" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    # FastAPI Framework
+    "fastapi==0.121.2",
+    "uvicorn[standard]==0.34.0",
+    
+    # Database
+    "sqlalchemy==2.0.36",
+    "psycopg2-binary==2.9.10",
+    "alembic==1.14.0",
+    
+    # Environment variables
+    "python-dotenv==1.0.1",
+    
+    # Data validation
+    "pydantic==2.12.4",
+    "pydantic-settings==2.7.1",
+    "email-validator==2.3.0",
+    
+    # Authentication & Security
+    "python-jose[cryptography]==3.3.0",
+    "bcrypt==4.1.2",
+    "python-multipart==0.0.20",
+    "slowapi==0.1.9",
+    
+    # Development dependencies
+    "pytest==8.3.4",
+    "pytest-asyncio==0.24.0",
+    "httpx==0.28.1",
+    
+    # IA
+    "langchain==1.0.7",
+    "langgraph==1.0.3",
+    "langgraph-cli==0.4.7",
+    "langchain-openai==1.0.3",
+    "langgraph-checkpoint-postgres==3.0.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[dependency-groups]
+dev = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+asyncio_mode = "auto"
