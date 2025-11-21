@@ -12,8 +12,9 @@ from src.dependencies import get_current_user, verify_chatbot_rate_limit
 from src.db.checkpoint import lifespan, CheckpointerDep
 from src.db.database import SessionLocal
 
-from src.services.usage_log_service import create_usage_log
+from src.services.usage_log_service import create_usage_log, check_chatbot_rate_limit
 from src.schemas.usage_log import UsageLogCreate
+from src.core.config import settings
 
 from agents.basic.agent import make_graph
 from langchain_core.messages import HumanMessage
@@ -98,3 +99,28 @@ async def stream_chat(
                 yield f"data: {message_chunk.content}\n\n"
 
     return StreamingResponse(generate_response(), media_type="text/event-stream")
+
+
+@router.get("/usage")
+async def get_usage(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Obtiene el uso actual de consultas del usuario al chatbot.
+    
+    Retorna:
+    - used: Número de consultas realizadas en las últimas 24 horas
+    - remaining: Número de consultas restantes
+    - limit: Límite total de consultas por ventana de tiempo
+    - window_hours: Ventana de tiempo en horas
+    """
+    can_query, used, remaining = check_chatbot_rate_limit(db, current_user.id)
+    
+    return {
+        "used": used,
+        "remaining": remaining,
+        "limit": settings.CHATBOT_QUERY_LIMIT,
+        "window_hours": settings.CHATBOT_QUERY_WINDOW_HOURS,
+        "can_query": can_query
+    }

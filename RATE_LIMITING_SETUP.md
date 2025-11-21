@@ -139,15 +139,37 @@ INFO: Chatbot rate limit check for user 1: used=5/5, remaining=0, can_query=Fals
 - ✅ La ventana de tiempo es deslizante (últimas 24 horas)
 - ✅ No afecta otros endpoints, solo `/chatbot` y `/chatbot/stream`
 
+## Endpoint de Consulta de Uso
+
+Se ha implementado un endpoint para que los usuarios consulten su uso actual:
+
+```bash
+GET /chatbot/usage
+Authorization: Bearer <token>
+```
+
+**Respuesta:**
+```json
+{
+  "used": 3,
+  "remaining": 2,
+  "limit": 5,
+  "window_hours": 24,
+  "can_query": true
+}
+```
+
+**Campos:**
+- `used`: Consultas realizadas en las últimas 24 horas
+- `remaining`: Consultas disponibles
+- `limit`: Límite total
+- `window_hours`: Ventana de tiempo en horas
+- `can_query`: Si el usuario puede hacer más consultas
+
 ## Próximos Pasos Opcionales
 
-1. **Agregar endpoint de consulta** para que usuarios vean su uso actual:
-   ```python
-   @router.get("/chatbot/usage")
-   async def get_usage(current_user: User = Depends(get_current_user)):
-       can_query, used, remaining = check_chatbot_rate_limit(db, current_user.id)
-       return {"used": used, "remaining": remaining, "limit": settings.CHATBOT_QUERY_LIMIT}
-   ```
+1. ✅ **Endpoint de consulta de uso** - IMPLEMENTADO
+   - GET `/chatbot/usage` para ver uso actual
 
 2. **Diferentes límites por rol** (usuarios premium vs. free)
 
