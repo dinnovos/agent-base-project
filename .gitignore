@@ -90,5 +90,5 @@ dist/
 *.egg-info/
 *.egg
 
-# Keep dinnovos_cli/cookiecutter-template (needed for distribution)
-!dinnovos_cli/cookiecutter-template/
+# Keep cookiecutter-template (needed for distribution)
+!cookiecutter-template/
