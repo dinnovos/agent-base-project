@@ -21,19 +21,20 @@ Whether you're prototyping a conversational AI, building a production agent syst
 - **[FORK_WORKFLOW.md](FORK_WORKFLOW.md)** - How to fork and keep your project updated
 - **[QUICKSTART.md](QUICKSTART.md)** - Tutorial for creating new models
 - **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** - Production deployment guide
+- **[PLANS_SYSTEM.md](PLANS_SYSTEM.md)** - Dynamic plans system for rate limiting
 
 ## Features
 
 - **FastAPI** - Modern, fast web framework for building APIs
 - **SQLAlchemy ORM** - Powerful database ORM with support for multiple databases
 - **JWT Authentication** - Secure authentication using JSON Web Tokens with bcrypt password hashing
-- **Rate Limiting** - Per-user rate limiting for chatbot endpoints (5 queries/24 hours configurable)
+- **Dynamic Plans System** - Per-user rate limiting based on subscription plans (Free, Pro, Enterprise, etc.)
 - **Alembic** - Database migration management
 - **LangGraph Agents** - AI agents with state persistence using LangGraph
 - **Modular Architecture** - Clean separation of concerns with routers, services, and models
 - **Pydantic Schemas** - Request/response validation and serialization
 - **CORS Support** - Cross-Origin Resource Sharing enabled
-- **Base Models** - Pre-built User and Profile models with relationships
+- **Base Models** - Pre-built User, Profile, and Plan models with relationships
 - **Usage Tracking** - Automatic logging of all chatbot queries with token usage statistics
 
 ## Project Structure
@@ -195,7 +196,8 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 # Bcrypt Configuration
 BCRYPT_ROUNDS=10
 
-# Chatbot Rate Limiting
+# Chatbot Rate Limiting (DEPRECATED - Now managed by user plans)
+# These values are kept as fallback only in case of errors
 CHATBOT_QUERY_LIMIT=5
 CHATBOT_QUERY_WINDOW_HOURS=24
 
@@ -560,28 +562,30 @@ curl -X GET "http://localhost:8000/chatbot/usage" \
 }
 ```
 
-## Rate Limiting
+## Rate Limiting with Dynamic Plans
 
-The chatbot endpoints implement a rate limiting mechanism to control API usage:
+The chatbot endpoints implement a **dynamic rate limiting system** based on user subscription plans:
 
-### Configuration
+### Overview
 
-Rate limiting is configured via environment variables in `.env`:
+Instead of static environment variables, rate limits are now managed through database plans:
+- Each user is assigned to a **Plan** (Free, Pro, Enterprise, etc.)
+- Each plan defines its own `query_limit` and `query_window_hours`
+- Limits are enforced per-user based on their assigned plan
 
-```env
-# Maximum number of queries per user
-CHATBOT_QUERY_LIMIT=5
+### Default Plan: Free
 
-# Time window in hours
-CHATBOT_QUERY_WINDOW_HOURS=24
-```
+All new users are automatically assigned to the **Free** plan:
+- **query_limit**: 5 queries
+- **query_window_hours**: 24 hours
 
 ### How It Works
 
-- **Per-User Limiting**: Each authenticated user has their own quota
-- **24-Hour Window**: The limit is based on a sliding 24-hour window
-- **Unique Query Counting**: Queries are counted by unique `main_call_tid` values
-- **Automatic Tracking**: Uses existing `UsageLog` table - no additional database tables needed
+1. **User Registration**: New users are automatically assigned the "Free" plan
+2. **Per-User Limiting**: Each authenticated user has their own quota based on their plan
+3. **Sliding Window**: The limit is based on a sliding time window defined by the plan
+4. **Unique Query Counting**: Queries are counted by unique `main_call_tid` values
+5. **Automatic Tracking**: Uses existing `UsageLog` table - no additional tables needed
 
 ### Rate Limit Behavior
 
@@ -591,8 +595,22 @@ CHATBOT_QUERY_WINDOW_HOURS=24
 
 **When Limit Exceeded:**
 - Request returns HTTP 429 (Too Many Requests)
-- Includes detailed error message with usage information
+- Includes detailed error message with plan information
 - Includes `X-RateLimit-*` headers for client handling
+
+**Example Error Response:**
+```json
+{
+  "detail": {
+    "message": "Rate limit exceeded. You have used 5 of 5 queries in the last 24 hours (Plan: Free).",
+    "queries_used": 5,
+    "queries_limit": 5,
+    "window_hours": 24,
+    "queries_remaining": 0,
+    "plan": "Free"
+  }
+}
+```
 
 ### Checking Usage
 
@@ -614,28 +632,71 @@ Returns:
 }
 ```
 
-### Customizing Limits
+### Managing Plans
 
-To change rate limiting for different user types or scenarios:
+Plans are managed directly in the database. To create or modify plans:
 
-```env
-# Example: 10 queries per 12 hours
-CHATBOT_QUERY_LIMIT=10
-CHATBOT_QUERY_WINDOW_HOURS=12
-
-# Example: Unlimited (development)
-CHATBOT_QUERY_LIMIT=1000
-CHATBOT_QUERY_WINDOW_HOURS=24
+**Create a new plan (SQL):**
+```sql
+INSERT INTO plans (name, description, query_limit, query_window_hours, is_active)
+VALUES ('Pro', 'Professional plan with extended limits', 50, 24, true);
 ```
+
+**Change user's plan (SQL):**
+```sql
+UPDATE users
+SET plan_id = (SELECT id FROM plans WHERE name = 'Pro')
+WHERE email = 'user@example.com';
+```
+
+**Using Python services:**
+```python
+from src.services.plan_service import create_plan
+from src.services.user_service import change_user_plan
+from src.schemas.plan import PlanCreate
+
+# Create a new plan
+plan_data = PlanCreate(
+    name="Enterprise",
+    description="Enterprise plan with high limits",
+    query_limit=1000,
+    query_window_hours=24,
+    is_active=True
+)
+plan = create_plan(db, plan_data)
+
+# Change user's plan
+updated_user = change_user_plan(db, user_id=123, plan_id=plan.id)
+```
+
+### Example Plans
+
+| Plan       | query_limit | query_window_hours | Description                    |
+|------------|-------------|-------------------|--------------------------------|
+| Free       | 5           | 24                | Default plan for new users     |
+| Basic      | 20          | 24                | Basic paid plan                |
+| Pro        | 100         | 24                | Professional plan              |
+| Enterprise | 1000        | 24                | Enterprise plan                |
 
 ### Implementation Details
 
+- **Model**: `Plan` in `src/models/plan.py`
 - **Service**: `check_chatbot_rate_limit()` in `src/services/usage_log_service.py`
 - **Dependency**: `verify_chatbot_rate_limit()` in `src/dependencies.py`
 - **Endpoints Protected**: `POST /chatbot`, `POST /chatbot/stream`
 - **Endpoint for Checking**: `GET /chatbot/usage`
 
-For more details, see `RATE_LIMITING_SETUP.md`.
+### Migration
+
+To set up the plans system, run the database migration:
+
+```bash
+# Move migration file to alembic/versions/
+# Then run:
+alembic upgrade head
+```
+
+For complete documentation, see **[PLANS_SYSTEM.md](PLANS_SYSTEM.md)**.
 
 ---
 
@@ -1022,11 +1083,13 @@ docker run -d -p 8000:8000 \
 | `ALGORITHM` | JWT algorithm | `HS256` | No |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Token expiration time in minutes | `30` | No |
 | `BCRYPT_ROUNDS` | Bcrypt hashing rounds for passwords | `10` | No |
-| `CHATBOT_QUERY_LIMIT` | Max chatbot queries per user | `5` | No |
-| `CHATBOT_QUERY_WINDOW_HOURS` | Rate limit window in hours | `24` | No |
+| `CHATBOT_QUERY_LIMIT` | ⚠️ DEPRECATED - Fallback rate limit (use plans instead) | `5` | No |
+| `CHATBOT_QUERY_WINDOW_HOURS` | ⚠️ DEPRECATED - Fallback window (use plans instead) | `24` | No |
 | `OPENAI_API_KEY` | OpenAI API key for LangGraph agent | - | Yes (for chatbot) |
 | `LANGSMITH_TRACING` | Enable LangSmith tracing | `false` | No |
 | `LANGSMITH_API_KEY` | LangSmith API key for monitoring | - | No |
+
+**Note:** Rate limiting is now managed through database plans. See [PLANS_SYSTEM.md](PLANS_SYSTEM.md) for details.
 
 **Generate a secure SECRET_KEY:**
 ```bash

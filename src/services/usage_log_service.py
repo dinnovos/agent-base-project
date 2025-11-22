@@ -247,20 +247,33 @@ def delete_old_usage_logs(db: Session, days: int = 90) -> int:
     return count
 
 
-def check_chatbot_rate_limit(db: Session, user_id: int) -> Tuple[bool, int, int]:
+def check_chatbot_rate_limit(db: Session, user_id: int) -> Tuple[bool, int, int, int, int]:
     """
     Verifica si el usuario ha excedido el límite de consultas al chatbot.
-    Cuenta consultas únicas por main_call_tid en las últimas 24 horas.
+    Cuenta consultas únicas por main_call_tid basándose en el plan del usuario.
     
     Args:
         db: Database session
         user_id: ID del usuario
         
     Returns:
-        Tuple[bool, int, int]: (puede_consultar, consultas_usadas, consultas_restantes)
+        Tuple[bool, int, int, int, int]: (puede_consultar, consultas_usadas, consultas_restantes, query_limit, query_window_hours)
     """
-    # Calcular la ventana de tiempo
-    window_start = datetime.utcnow() - timedelta(hours=settings.CHATBOT_QUERY_WINDOW_HOURS)
+    from src.models.user import User
+    
+    # Obtener usuario con su plan
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user or not user.plan:
+        logger.error(f"User {user_id} or their plan not found")
+        # Fallback a valores por defecto si hay error
+        return False, 0, 0, settings.CHATBOT_QUERY_LIMIT, settings.CHATBOT_QUERY_WINDOW_HOURS
+    
+    # Obtener límites del plan del usuario
+    query_limit = user.plan.query_limit
+    query_window_hours = user.plan.query_window_hours
+    
+    # Calcular la ventana de tiempo basada en el plan
+    window_start = datetime.utcnow() - timedelta(hours=query_window_hours)
     
     # Contar main_call_tid únicos (cada consulta al chatbot genera un main_call_tid único)
     query_count = db.query(func.count(func.distinct(UsageLog.main_call_tid))).filter(
@@ -269,13 +282,13 @@ def check_chatbot_rate_limit(db: Session, user_id: int) -> Tuple[bool, int, int]
     ).scalar()
     
     queries_used = query_count or 0
-    queries_remaining = max(0, settings.CHATBOT_QUERY_LIMIT - queries_used)
-    can_query = queries_used < settings.CHATBOT_QUERY_LIMIT
+    queries_remaining = max(0, query_limit - queries_used)
+    can_query = queries_used < query_limit
     
     logger.info(
-        f"Chatbot rate limit check for user {user_id}: "
-        f"used={queries_used}/{settings.CHATBOT_QUERY_LIMIT}, "
-        f"remaining={queries_remaining}, can_query={can_query}"
+        f"Chatbot rate limit check for user {user_id} (plan: {user.plan.name}): "
+        f"used={queries_used}/{query_limit}, "
+        f"remaining={queries_remaining}, window={query_window_hours}h, can_query={can_query}"
     )
     
-    return can_query, queries_used, queries_remaining
+    return can_query, queries_used, queries_remaining, query_limit, query_window_hours

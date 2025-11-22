@@ -7,6 +7,7 @@ from sqlalchemy.orm import sessionmaker
 from src.main import app
 from src.db.session import get_db
 from src.models.base import Base
+from src.models.plan import Plan
 
 # Use SelectorEventLoop on Windows for psycopg compatibility
 if sys.platform == "win32":
@@ -59,6 +60,28 @@ def client(db_session):
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(scope="function")
+def test_plan(db_session):
+    """Create a test plan for testing."""
+    # Check if Free plan already exists
+    existing_plan = db_session.query(Plan).filter(Plan.name == "Free").first()
+    if existing_plan:
+        return existing_plan
+    
+    # Create Free plan if it doesn't exist
+    plan = Plan(
+        name="Free",
+        description="Plan gratuito con límites básicos",
+        query_limit=5,
+        query_window_hours=24,
+        is_active=True
+    )
+    db_session.add(plan)
+    db_session.commit()
+    db_session.refresh(plan)
+    return plan
 
 
 @pytest.fixture

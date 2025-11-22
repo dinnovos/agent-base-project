@@ -97,24 +97,29 @@ def verify_chatbot_rate_limit(
     """
     Dependency to check if user has exceeded chatbot query rate limit.
     Uses existing UsageLog records to count queries by main_call_tid.
+    Rate limits are based on the user's plan.
     Raises HTTPException if limit is exceeded.
     Returns the current user if within limits.
     """
-    can_query, queries_used, queries_remaining = check_chatbot_rate_limit(db, current_user.id)
+    can_query, queries_used, queries_remaining, query_limit, query_window_hours = check_chatbot_rate_limit(db, current_user.id)
     
     if not can_query:
+        plan_name = current_user.plan.name if current_user.plan else "Unknown"
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail={
-                "message": f"Rate limit exceeded. You have used {queries_used} of {settings.CHATBOT_QUERY_LIMIT} queries in the last {settings.CHATBOT_QUERY_WINDOW_HOURS} hours.",
+                "message": f"Rate limit exceeded. You have used {queries_used} of {query_limit} queries in the last {query_window_hours} hours (Plan: {plan_name}).",
                 "queries_used": queries_used,
-                "queries_limit": settings.CHATBOT_QUERY_LIMIT,
-                "window_hours": settings.CHATBOT_QUERY_WINDOW_HOURS,
-                "queries_remaining": 0
+                "queries_limit": query_limit,
+                "window_hours": query_window_hours,
+                "queries_remaining": 0,
+                "plan": plan_name
             },
-            headers={"X-RateLimit-Limit": str(settings.CHATBOT_QUERY_LIMIT),
-                     "X-RateLimit-Remaining": "0",
-                     "X-RateLimit-Reset": str(settings.CHATBOT_QUERY_WINDOW_HOURS)}
+            headers={
+                "X-RateLimit-Limit": str(query_limit),
+                "X-RateLimit-Remaining": "0",
+                "X-RateLimit-Reset": str(query_window_hours)
+            }
         )
     
     return current_user

@@ -1,11 +1,12 @@
 ### Variables
-@baseUrl = http://localhost:8000
+#@baseUrl = http://localhost:8000
+@baseUrl = https://agent-base-project-production.up.railway.app
 # FLUJO DE AUTENTICACIÓN:
 # 1. Ejecuta POST /auth/login para obtener un token
 # 2. Copia el "access_token" de la respuesta
 # 3. Pega el token aquí abajo (reemplaza todo lo que está después del =)
 # 4. Los tokens expiran en 30 minutos - usa POST /auth/refresh para renovar
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZW1vMUBleGFtcGxlLmNvbSIsImV4cCI6MTc2MzU3ODYwN30.JpmGj9-XjryeJOTAmtu-s60BIqvL9soju8TD6PeTx5A
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZW1vMUBleGFtcGxlLmNvbSIsImV4cCI6MTc2MzgwNTUxNX0.afZOFvtYthGSMoUh92AeD9po_JCsyppmXTC2oyqQej4
 
 ### Root - Health Check
 GET {{baseUrl}}/ HTTP/1.1
@@ -55,7 +56,7 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "message": "hi"
+  "message": "my name is Jorge"
 }
 
 ### Chat Stream

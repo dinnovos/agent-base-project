@@ -5,6 +5,8 @@ from src.models.user import User
 from src.models.profile import Profile
 from src.schemas.user import UserCreate, UserUpdate
 from src.core.security import hash_password, verify_password
+from src.services.plan_service import get_default_plan
+from src.core.logging import logger
 
 
 def get_user_by_id(db: Session, user_id: int) -> Optional[User]:
@@ -23,9 +25,15 @@ def get_user_by_username(db: Session, username: str) -> Optional[User]:
 
 
 def create_user(db: Session, user_data: UserCreate) -> User:
-    """Create a new user with associated profile."""
+    """Create a new user with associated profile and default plan."""
     # Hash the password
     hashed_password = hash_password(user_data.password)
+
+    # Get default "Free" plan
+    default_plan = get_default_plan(db)
+    if not default_plan:
+        logger.error("Default 'Free' plan not found in database")
+        raise ValueError("Default plan not found. Please contact administrator.")
 
     # Create user
     db_user = User(
@@ -33,7 +41,8 @@ def create_user(db: Session, user_data: UserCreate) -> User:
         email=user_data.email,
         password=hashed_password,
         first_name=user_data.first_name,
-        last_name=user_data.last_name
+        last_name=user_data.last_name,
+        plan_id=default_plan.id
     )
     db.add(db_user)
     db.commit()
@@ -48,6 +57,7 @@ def create_user(db: Session, user_data: UserCreate) -> User:
     db.commit()
     db.refresh(db_user)
 
+    logger.info(f"User {db_user.username} created with plan '{default_plan.name}' (ID: {default_plan.id})")
     return db_user
 
 
@@ -120,3 +130,36 @@ def change_password(db: Session, user_id: int, current_password: str, new_passwo
     db_user.password = hash_password(new_password)
     db.commit()
     return True
+
+
+def change_user_plan(db: Session, user_id: int, plan_id: int) -> Optional[User]:
+    """
+    Change user's plan (admin function).
+    
+    Args:
+        db: Database session
+        user_id: ID of the user
+        plan_id: ID of the new plan
+        
+    Returns:
+        Updated User object or None if user/plan not found
+    """
+    from src.services.plan_service import get_plan_by_id
+    
+    db_user = get_user_by_id(db, user_id)
+    if not db_user:
+        logger.warning(f"User {user_id} not found for plan change")
+        return None
+    
+    db_plan = get_plan_by_id(db, plan_id)
+    if not db_plan:
+        logger.warning(f"Plan {plan_id} not found for user {user_id}")
+        return None
+    
+    old_plan_name = db_user.plan.name if db_user.plan else "Unknown"
+    db_user.plan_id = plan_id
+    db.commit()
+    db.refresh(db_user)
+    
+    logger.info(f"User {db_user.username} plan changed from '{old_plan_name}' to '{db_plan.name}'")
+    return db_user

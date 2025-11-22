@@ -2,8 +2,8 @@ import pytest
 from fastapi import status
 
 
-def test_register_user(client, test_user_data):
-    """Test user registration."""
+def test_register_user(client, test_user_data, test_plan):
+    """Test user registration with default plan assignment."""
     response = client.post("/auth/register", json=test_user_data)
     assert response.status_code == status.HTTP_201_CREATED
     data = response.json()
@@ -11,9 +11,19 @@ def test_register_user(client, test_user_data):
     assert data["username"] == test_user_data["username"]
     assert "password" not in data  # Password should not be returned
     assert "id" in data
+    
+    # Verify user has a plan assigned
+    from src.models.user import User
+    from src.db.session import get_db
+    db = next(get_db())
+    user = db.query(User).filter(User.email == test_user_data["email"]).first()
+    assert user is not None
+    assert user.plan_id is not None
+    assert user.plan.name == "Free"
+    db.close()
 
 
-def test_register_duplicate_email(client, test_user_data):
+def test_register_duplicate_email(client, test_user_data, test_plan):
     """Test registration with duplicate email."""
     # Register first user
     client.post("/auth/register", json=test_user_data)
@@ -24,7 +34,7 @@ def test_register_duplicate_email(client, test_user_data):
     assert "email already registered" in response.json()["detail"].lower()
 
 
-def test_register_duplicate_username(client, test_user_data):
+def test_register_duplicate_username(client, test_user_data, test_plan):
     """Test registration with duplicate username."""
     # Register first user
     client.post("/auth/register", json=test_user_data)
@@ -37,7 +47,7 @@ def test_register_duplicate_username(client, test_user_data):
     assert "username already taken" in response.json()["detail"].lower()
 
 
-def test_login_success(client, test_user_data):
+def test_login_success(client, test_user_data, test_plan):
     """Test successful login."""
     # Register user
     client.post("/auth/register", json=test_user_data)
@@ -54,7 +64,7 @@ def test_login_success(client, test_user_data):
     assert data["token_type"] == "bearer"
 
 
-def test_login_wrong_password(client, test_user_data):
+def test_login_wrong_password(client, test_user_data, test_plan):
     """Test login with wrong password."""
     # Register user
     client.post("/auth/register", json=test_user_data)
